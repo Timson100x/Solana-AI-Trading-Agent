@@ -6,7 +6,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "test": "node scripts/test.js",
+    "backup": "node -e \"import('./src/utils/backup-manager.js').then(m => new m.BackupManager().createBackup())\"",
+    "restore": "node -e \"import('./src/utils/backup-manager.js').then(m => new m.BackupManager().listBackups().then(console.log))\""
   },
   "keywords": ["solana", "trading", "ai", "jupiter", "day-trading"],
   "author": "Joko588",
