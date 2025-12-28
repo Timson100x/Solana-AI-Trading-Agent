@@ -1,0 +1,223 @@
+/**
+ * Email Integration Service
+ * Gmail, reports, alerts
+ */
+
+import nodemailer from 'nodemailer';
+import { Logger } from '../../utils/logger.js';
+
+const logger = new Logger('Email');
+
+export class EmailService {
+  constructor() {
+    this.service = process.env.EMAIL_SERVICE || 'gmail';
+    this.user = process.env.EMAIL_USER;
+    this.pass = process.env.EMAIL_PASSWORD;
+    this.to = process.env.EMAIL_RECIPIENT;
+
+    this.transporter = null;
+  }
+
+  async initialize() {
+    if (!this.user || !this.pass) {
+      throw new Error('Email credentials not configured');
+    }
+
+    this.transporter = nodemailer.createTransporter({
+      service: this.service,
+      auth: {
+        user: this.user,
+        pass: this.pass
+      }
+    });
+
+    // Test connection
+    await this.transporter.verify();
+
+    logger.success('Email service initialized');
+  }
+
+  async send(alert) {
+    try {
+      const mailOptions = {
+        from: this.user,
+        to: this.to,
+        subject: \`🚨 \${alert.title}\`,
+        html: this.formatAlertEmail(alert)
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      logger.info('Email sent:', alert.title);
+    } catch (error) {
+      logger.error('Email send error:', error.message);
+    }
+  }
+
+  async sendReport(report) {
+    try {
+      const mailOptions = {
+        from: this.user,
+        to: this.to,
+        subject: \`📊 Daily Trading Report - \${new Date().toLocaleDateString()}\`,
+        html: this.formatReportEmail(report)
+      };
+
+      await this.transporter.sendMail(mailOptions);
+      logger.info('Report email sent');
+    } catch (error) {
+      logger.error('Report email error:', error.message);
+    }
+  }
+
+  formatAlertEmail(alert) {
+    return \`
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 10px 10px 0 0;
+      text-align: center;
+    }
+    .content {
+      padding: 20px;
+      background: #f9f9f9;
+    }
+    .alert-box {
+      background: white;
+      padding: 15px;
+      border-left: 4px solid #667eea;
+      margin: 10px 0;
+    }
+    .footer {
+      text-align: center;
+      padding: 10px;
+      color: #666;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 Solana Trading Bot</h1>
+      <p>Alert Notification</p>
+    </div>
+    <div class="content">
+      <div class="alert-box">
+        <h2>\${alert.title}</h2>
+        <p>\${alert.message}</p>
+        \${alert.token ? \`<p><strong>Token:</strong> \${alert.token}</p>\` : ''}
+        \${alert.confidence ? \`<p><strong>Confidence:</strong> \${alert.confidence}%</p>\` : ''}
+        <p><strong>Time:</strong> \${new Date().toLocaleString()}</p>
+      </div>
+    </div>
+    <div class="footer">
+      <p>Solana AI Trading Agent</p>
+      <p>Automated Trading System</p>
+    </div>
+  </div>
+</body>
+</html>
+\`;
+  }
+
+  formatReportEmail(report) {
+    return \`
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    .stat-box {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+      color: #667eea;
+    }
+    .stat-label {
+      color: #666;
+      font-size: 14px;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Daily Trading Report</h1>
+      <p>\${new Date().toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })}</p>
+    </div>
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-value">💰</div>
+        <div class="stat-label">Trading Active</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value">✅</div>
+        <div class="stat-label">System Online</div>
+      </div>
+    </div>
+    <pre>\${report}</pre>
+    <div style="text-align: center; margin-top: 20px; color: #666;">
+      <p>Generated by Solana AI Trading Agent</p>
+    </div>
+  </div>
+</body>
+</html>
+\`;
+  }
+}
