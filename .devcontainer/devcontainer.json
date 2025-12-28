@@ -1,0 +1,45 @@
+{
+  "name": "Solana AI Trading Agent",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20",
+
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+
+  "postCreateCommand": "npm install && echo '✅ Ready! Copy .env.example to .env and add your keys'",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.tabSize": 2,
+        "javascript.preferences.quoteStyle": "single"
+      }
+    }
+  },
+
+  "forwardPorts": [3000, 3001],
+
+  "portsAttributes": {
+    "3000": {
+      "label": "Trading Agent API",
+      "onAutoForward": "openBrowser"
+    },
+    "3001": {
+      "label": "WebSocket Stream",
+      "onAutoForward": "notify"
+    }
+  },
+
+  "remoteUser": "node"
+}
