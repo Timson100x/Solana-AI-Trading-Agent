@@ -1,0 +1,28 @@
+{
+  "name": "solana-ai-trading-agent",
+  "version": "1.0.0",
+  "description": "AI-powered Solana day trading bot with 0.17 SOL capital",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "keywords": ["solana", "trading", "ai", "jupiter", "day-trading"],
+  "author": "Joko588",
+  "license": "MIT",
+  "dependencies": {
+    "@solana/web3.js": "^1.95.0",
+    "@solana/spl-token": "^0.4.0",
+    "@google/generative-ai": "^0.21.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "express": "^4.19.0",
+    "dotenv": "^16.4.5",
+    "axios": "^1.7.0",
+    "ws": "^8.18.0",
+    "bs58": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
