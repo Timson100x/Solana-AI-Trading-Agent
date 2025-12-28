@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🤖 Solana AI Trading Agent</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a2e 100%);
+      color: white;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { color: #9945FF; margin-bottom: 20px; font-size: 2rem; }
+    .card {
+      background: rgba(26, 26, 46, 0.8);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 20px 0;
+      border: 1px solid rgba(153, 69, 255, 0.3);
+    }
+    .status { display: inline-block; padding: 8px 16px; border-radius: 20px; 
+              background: #14F195; color: #0f0f23; font-weight: 600; }
+    .metric { display: flex; justify-content: space-between; 
+              padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .metric:last-child { border-bottom: none; }
+    .label { color: #888; }
+    .value { font-weight: 600; color: #14F195; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 Solana AI Trading Agent</h1>
+
+    <div class="card">
+      <h3>Status: <span class="status">Setting Up</span></h3>
+      <p style="margin-top: 16px; color: #888;">
+        Complete setup in <code>.env</code> to activate the trading agent.
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>📊 Setup Checklist</h3>
+      <div style="margin-top: 16px;">
+        <div class="metric">
+          <span class="label">1. Copy .env.example to .env</span>
+          <span class="value">⏳ Pending</span>
+        </div>
+        <div class="metric">
+          <span class="label">2. Add API keys</span>
+          <span class="value">⏳ Pending</span>
+        </div>
+        <div class="metric">
+          <span class="label">3. Configure wallet</span>
+          <span class="value">⏳ Pending</span>
+        </div>
+        <div class="metric">
+          <span class="label">4. Start agent</span>
+          <span class="value">⏳ Pending</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🤖 Complete with Copilot</h3>
+      <p style="margin-top: 16px; color: #888;">
+        This agent needs implementation. Ask GitHub Copilot:<br><br>
+        <code style="background: rgba(0,0,0,0.3); padding: 12px; display: block; 
+                     border-radius: 6px; margin-top: 8px;">
+          @workspace Complete this Solana trading agent with all services
+        </code>
+      </p>
+    </div>
+  </div>
+</body>
+</html>
