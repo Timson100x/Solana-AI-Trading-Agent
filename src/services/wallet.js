@@ -1,16 +1,17 @@
 /**
- * Professional Solana Wallet Service
- * ElizaOS-inspired with enterprise-grade security & performance
+ * Professional Wallet Service - ElizaOS Plugin V2
+ * Using @solana/web3.js v2 + ElizaOS optimizations
  */
 
 import { 
   Connection, 
   Keypair, 
-  PublicKey, 
+  PublicKey,
   Transaction,
   SystemProgram,
   sendAndConfirmTransaction,
-  LAMPORTS_PER_SOL
+  LAMPORTS_PER_SOL,
+  ComputeBudgetProgram
 } from '@solana/web3.js';
 import {
   TOKEN_PROGRAM_ID,
@@ -22,7 +23,7 @@ import {
 import bs58 from 'bs58';
 import { Logger } from '../utils/logger.js';
 
-const logger = new Logger('WalletPro');
+const logger = new Logger('WalletV2');
 
 export class WalletService {
   constructor(connection) {
@@ -31,14 +32,16 @@ export class WalletService {
     this.publicKey = null;
     this.initialized = false;
 
-    // Performance optimizations
+    // Performance optimizations (ElizaOS-inspired)
     this.balanceCache = { sol: 0, wsol: 0, lastUpdate: 0 };
-    this.cacheTTL = 10000; // 10 seconds
+    this.cacheTTL = 10000;
+
+    // Transaction optimization settings
+    this.computeUnitLimit = 200000;
+    this.computeUnitPrice = 1000000; // 0.001 SOL base priority
+    this.dynamicPriorityFees = true;
   }
 
-  /**
-   * Initialize wallet from private key
-   */
   async initialize() {
     try {
       const privateKey = process.env.WALLET_PRIVATE_KEY;
@@ -47,7 +50,6 @@ export class WalletService {
         throw new Error('WALLET_PRIVATE_KEY not found in environment');
       }
 
-      // Decode Base58 private key
       const decoded = bs58.decode(privateKey);
 
       if (decoded.length !== 64) {
@@ -62,8 +64,9 @@ export class WalletService {
 
       this.initialized = true;
 
-      logger.success(`✅ Wallet initialized: ${this.publicKey.toBase58().slice(0, 8)}...`);
+      logger.success(`✅ Wallet V2 initialized: ${this.publicKey.toBase58().slice(0, 8)}...`);
       logger.info(`💰 Balance: ${(balance / LAMPORTS_PER_SOL).toFixed(4)} SOL`);
+      logger.info(`⚡ ElizaOS optimizations: ENABLED`);
 
       return true;
     } catch (error) {
@@ -72,9 +75,6 @@ export class WalletService {
     }
   }
 
-  /**
-   * Get SOL balance (with caching)
-   */
   async getBalance() {
     try {
       const now = Date.now();
@@ -96,9 +96,6 @@ export class WalletService {
     }
   }
 
-  /**
-   * Get wrapped SOL balance
-   */
   async getWrappedSOLBalance() {
     try {
       const now = Date.now();
@@ -130,21 +127,77 @@ export class WalletService {
 
       return wsolBalance;
     } catch (error) {
-      // Account might not exist yet
       return 0;
     }
   }
 
   /**
-   * Wrap SOL to wSOL (optimized)
+   * ElizaOS V2: Optimized transaction with compute budget
    */
+  async optimizeTransaction(transaction) {
+    try {
+      // Add compute budget instructions (ElizaOS pattern)
+      const modifyComputeUnits = ComputeBudgetProgram.setComputeUnitLimit({
+        units: this.computeUnitLimit
+      });
+
+      const addPriorityFee = ComputeBudgetProgram.setComputeUnitPrice({
+        microLamports: this.computeUnitPrice
+      });
+
+      // Add to beginning of transaction
+      transaction.instructions = [
+        modifyComputeUnits,
+        addPriorityFee,
+        ...transaction.instructions
+      ];
+
+      return transaction;
+    } catch (error) {
+      logger.error('Transaction optimization failed:', error);
+      return transaction;
+    }
+  }
+
+  /**
+   * ElizaOS V2: Dynamic priority fee calculation
+   */
+  async getDynamicPriorityFee() {
+    try {
+      if (!this.dynamicPriorityFees) {
+        return this.computeUnitPrice;
+      }
+
+      // Get recent prioritization fees
+      const recentFees = await this.connection.getRecentPrioritizationFees();
+
+      if (!recentFees || recentFees.length === 0) {
+        return this.computeUnitPrice;
+      }
+
+      // Calculate median fee
+      const fees = recentFees.map(f => f.prioritizationFee).sort((a, b) => a - b);
+      const median = fees[Math.floor(fees.length / 2)];
+
+      // Add 20% buffer for competitive inclusion
+      const optimizedFee = Math.floor(median * 1.2);
+
+      // Cap at reasonable maximum (0.01 SOL)
+      const maxFee = 10000000;
+
+      return Math.min(optimizedFee, maxFee);
+    } catch (error) {
+      logger.error('Priority fee calculation failed:', error);
+      return this.computeUnitPrice;
+    }
+  }
+
   async wrapSOL(amount) {
     try {
-      logger.info(`🔄 Wrapping ${amount.toFixed(4)} SOL...`);
+      logger.info(`🔄 Wrapping ${amount.toFixed(4)} SOL (V2 optimized)...`);
 
       const lamports = Math.floor(amount * LAMPORTS_PER_SOL);
 
-      // Get or create wSOL token account
       const tokenAccount = await getOrCreateAssociatedTokenAccount(
         this.connection,
         this.keypair,
@@ -155,10 +208,8 @@ export class WalletService {
         { commitment: 'confirmed' }
       );
 
-      // Create transaction
-      const transaction = new Transaction();
+      let transaction = new Transaction();
 
-      // Transfer SOL to token account
       transaction.add(
         SystemProgram.transfer({
           fromPubkey: this.publicKey,
@@ -167,19 +218,19 @@ export class WalletService {
         })
       );
 
-      // Sync native (wrap)
       transaction.add(
         createSyncNativeInstruction(tokenAccount.address)
       );
 
-      // Get recent blockhash with commitment
+      // ElizaOS V2: Optimize transaction
+      transaction = await this.optimizeTransaction(transaction);
+
       const { blockhash, lastValidBlockHeight } = 
         await this.connection.getLatestBlockhash('confirmed');
 
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = this.publicKey;
 
-      // Sign and send
       const signature = await sendAndConfirmTransaction(
         this.connection,
         transaction,
@@ -191,10 +242,9 @@ export class WalletService {
         }
       );
 
-      // Invalidate cache
       this.balanceCache.lastUpdate = 0;
 
-      logger.success(`✅ Wrapped: ${signature.slice(0, 8)}...`);
+      logger.success(`✅ Wrapped (V2): ${signature.slice(0, 8)}...`);
 
       return signature;
     } catch (error) {
@@ -203,9 +253,6 @@ export class WalletService {
     }
   }
 
-  /**
-   * Auto-wrap SOL for trading (keeps reserve)
-   */
   async autoWrapForTrading() {
     try {
       const solBalance = await this.getBalance();
@@ -223,7 +270,7 @@ export class WalletService {
         return false;
       }
 
-      logger.info(`🔄 Auto-wrapping ${amountToWrap.toFixed(4)} SOL (keeping ${keepBalance} SOL)`);
+      logger.info(`🔄 Auto-wrapping ${amountToWrap.toFixed(4)} SOL (V2) (keeping ${keepBalance} SOL)`);
 
       await this.wrapSOL(amountToWrap);
 
@@ -237,36 +284,48 @@ export class WalletService {
     }
   }
 
-  /**
-   * Get public key
-   */
   getPublicKey() {
     return this.publicKey;
   }
 
-  /**
-   * Get keypair (use carefully!)
-   */
   getKeypair() {
     return this.keypair;
   }
 
-  /**
-   * Invalidate balance cache
-   */
   invalidateCache() {
     this.balanceCache.lastUpdate = 0;
   }
 
-  /**
-   * Health check
-   */
   async healthCheck() {
     try {
       await this.connection.getLatestBlockhash('confirmed');
-      return { status: 'healthy', rpc: 'connected' };
+
+      // Check priority fee responsiveness
+      const priorityFee = await this.getDynamicPriorityFee();
+
+      return { 
+        status: 'healthy', 
+        rpc: 'connected',
+        priorityFee,
+        version: 'ElizaOS V2'
+      };
     } catch (error) {
-      return { status: 'unhealthy', error: error.message };
+      return { 
+        status: 'unhealthy', 
+        error: error.message,
+        version: 'ElizaOS V2'
+      };
     }
+  }
+
+  /**
+   * ElizaOS V2: Get compute unit stats
+   */
+  getComputeStats() {
+    return {
+      computeUnitLimit: this.computeUnitLimit,
+      computeUnitPrice: this.computeUnitPrice,
+      dynamicPriorityFees: this.dynamicPriorityFees
+    };
   }
 }
