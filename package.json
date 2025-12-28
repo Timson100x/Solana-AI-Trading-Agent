@@ -1,7 +1,7 @@
 {
   "name": "solana-ai-trading-agent-pro",
-  "version": "2.0.0",
-  "description": "Professional AI-powered Solana trading bot with ElizaOS",
+  "version": "2.1.0",
+  "description": "Professional AI Trading Bot with ElizaOS Plugin V2",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -25,9 +25,10 @@
   "author": "Joko588",
   "license": "MIT",
   "dependencies": {
-    "@solana/web3.js": "^1.95.3",
+    "@solana/web3.js": "^2.0.0",
     "@solana/spl-token": "^0.4.8",
     "@coral-xyz/anchor": "^0.30.1",
+    "@elizaos/plugin-solana": "^0.1.7-alpha.1",
     "@jup-ag/api": "^6.0.28",
     "@google/generative-ai": "^0.21.0",
     "node-telegram-bot-api": "^0.66.0",
