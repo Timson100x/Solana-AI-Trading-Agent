@@ -1,13 +1,13 @@
 /**
- * Professional Jupiter Aggregator Service
- * Optimized for high-frequency trading with ElizaOS patterns
+ * Professional Jupiter Service - ElizaOS V2
+ * Optimized with compute budget & dynamic priority fees
  */
 
-import { Connection, VersionedTransaction, PublicKey } from '@solana/web3.js';
+import { Connection, VersionedTransaction, PublicKey, ComputeBudgetProgram } from '@solana/web3.js';
 import axios from 'axios';
 import { Logger } from '../utils/logger.js';
 
-const logger = new Logger('JupiterPro');
+const logger = new Logger('JupiterV2');
 
 export class JupiterService {
   constructor(connection, wallet) {
@@ -15,18 +15,16 @@ export class JupiterService {
     this.wallet = wallet;
     this.baseUrl = 'https://quote-api.jup.ag/v6';
 
-    // Token mints
     this.WSOL = 'So11111111111111111111111111111111111111112';
 
-    // Performance tracking
+    // ElizaOS V2: Enhanced tracking
     this.successRate = { success: 0, failed: 0 };
+    this.avgExecutionTime = 0;
+    this.executionCount = 0;
 
-    logger.success('✅ Jupiter Aggregator initialized');
+    logger.success('✅ Jupiter V2 initialized (ElizaOS optimized)');
   }
 
-  /**
-   * Get quote for token swap (with retry logic)
-   */
   async getQuote(inputMint, outputMint, amount, options = {}) {
     const maxRetries = 3;
     let lastError;
@@ -54,7 +52,7 @@ export class JupiterService {
         const quote = response.data;
 
         logger.info(
-          `📊 Quote: ${(amount / 1e9).toFixed(4)} → ${(quote.outAmount / 1e9).toFixed(4)} ` +
+          `📊 Quote V2: ${(amount / 1e9).toFixed(4)} → ${(quote.outAmount / 1e9).toFixed(4)} ` +
           `(${quote.routePlan?.length || 0} routes)`
         );
 
@@ -73,11 +71,18 @@ export class JupiterService {
   }
 
   /**
-   * Execute swap transaction (optimized)
+   * ElizaOS V2: Enhanced swap with dynamic priority fees
    */
   async executeSwap(quote, options = {}) {
     try {
-      logger.info('🔄 Preparing swap transaction...');
+      const startTime = Date.now();
+
+      logger.info('🔄 Preparing V2 swap (ElizaOS optimized)...');
+
+      // ElizaOS V2: Get dynamic priority fee
+      const dynamicPriorityFee = await this.wallet.getDynamicPriorityFee();
+
+      logger.info(`⚡ Dynamic priority fee: ${(dynamicPriorityFee / 1000000).toFixed(4)} SOL`);
 
       // Get serialized transaction from Jupiter
       const response = await axios.post(
@@ -88,7 +93,7 @@ export class JupiterService {
           wrapAndUnwrapSol: true,
           dynamicComputeUnitLimit: true,
           priorityLevelWithMaxLamports: {
-            maxLamports: options.priorityFee || 10000,
+            maxLamports: Math.max(dynamicPriorityFee, 10000),
             priorityLevel: options.priorityLevel || 'high'
           }
         },
@@ -106,19 +111,34 @@ export class JupiterService {
       // Sign transaction
       transaction.sign([this.wallet.getKeypair()]);
 
-      logger.info('📤 Sending transaction...');
+      logger.info('📤 Sending V2 transaction...');
 
-      // Send with confirmation strategy
-      const signature = await this.connection.sendRawTransaction(
-        transaction.serialize(),
-        {
-          skipPreflight: false,
-          maxRetries: 3,
-          preflightCommitment: 'confirmed'
+      // ElizaOS V2: Enhanced send with retry logic
+      let signature;
+      let attempts = 0;
+      const maxAttempts = 3;
+
+      while (attempts < maxAttempts) {
+        try {
+          signature = await this.connection.sendRawTransaction(
+            transaction.serialize(),
+            {
+              skipPreflight: false,
+              maxRetries: 2,
+              preflightCommitment: 'confirmed'
+            }
+          );
+          break;
+        } catch (error) {
+          attempts++;
+          if (attempts >= maxAttempts) throw error;
+
+          logger.warn(`Send attempt ${attempts} failed, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-      );
+      }
 
-      // Wait for confirmation (with timeout)
+      // Wait for confirmation with timeout
       const confirmation = await Promise.race([
         this.connection.confirmTransaction(signature, 'confirmed'),
         new Promise((_, reject) => 
@@ -130,34 +150,39 @@ export class JupiterService {
         throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
       }
 
+      // Update stats
+      const executionTime = Date.now() - startTime;
       this.successRate.success++;
+      this.executionCount++;
+      this.avgExecutionTime = 
+        (this.avgExecutionTime * (this.executionCount - 1) + executionTime) / this.executionCount;
+
       this.wallet.invalidateCache();
 
-      logger.success(`✅ Swap executed: ${signature.slice(0, 8)}...`);
+      logger.success(
+        `✅ Swap V2 executed: ${signature.slice(0, 8)}... (${executionTime}ms)`
+      );
 
       return {
         signature,
         inputAmount: quote.inAmount,
         outputAmount: quote.outAmount,
+        executionTime,
         quote
       };
     } catch (error) {
       this.successRate.failed++;
-      logger.error('Swap execution failed:', error);
+      logger.error('Swap V2 execution failed:', error);
       throw error;
     }
   }
 
-  /**
-   * Buy token with SOL/wSOL
-   */
   async buyToken(tokenMint, solAmount, options = {}) {
     try {
-      logger.info(`🛒 Buying ${tokenMint.slice(0, 8)}... with ${solAmount.toFixed(4)} SOL`);
+      logger.info(`🛒 Buying V2: ${tokenMint.slice(0, 8)}... with ${solAmount.toFixed(4)} SOL`);
 
       const lamports = Math.floor(solAmount * 1e9);
 
-      // Get quote: wSOL → Token
       const quote = await this.getQuote(
         this.WSOL,
         tokenMint,
@@ -165,28 +190,25 @@ export class JupiterService {
         options
       );
 
-      // Execute swap
       const result = await this.executeSwap(quote, options);
 
-      logger.success(`✅ Bought ${(result.outputAmount / 1e9).toFixed(6)} tokens`);
+      logger.success(`✅ Bought V2: ${(result.outputAmount / 1e9).toFixed(6)} tokens`);
 
       return result;
     } catch (error) {
-      logger.error('Buy failed:', error);
+      logger.error('Buy V2 failed:', error);
       throw error;
     }
   }
 
-  /**
-   * Sell token for SOL/wSOL
-   */
   async sellToken(tokenMint, tokenAmount, decimals = 9, options = {}) {
     try {
-      logger.info(`💸 Selling ${(tokenAmount / Math.pow(10, decimals)).toFixed(6)} ${tokenMint.slice(0, 8)}...`);
+      logger.info(
+        `💸 Selling V2: ${(tokenAmount / Math.pow(10, decimals)).toFixed(6)} ${tokenMint.slice(0, 8)}...`
+      );
 
       const amount = Math.floor(tokenAmount);
 
-      // Get quote: Token → wSOL
       const quote = await this.getQuote(
         tokenMint,
         this.WSOL,
@@ -194,21 +216,17 @@ export class JupiterService {
         options
       );
 
-      // Execute swap
       const result = await this.executeSwap(quote, options);
 
-      logger.success(`✅ Sold for ${(result.outputAmount / 1e9).toFixed(4)} SOL`);
+      logger.success(`✅ Sold V2 for: ${(result.outputAmount / 1e9).toFixed(4)} SOL`);
 
       return result;
     } catch (error) {
-      logger.error('Sell failed:', error);
+      logger.error('Sell V2 failed:', error);
       throw error;
     }
   }
 
-  /**
-   * Get token price in SOL
-   */
   async getTokenPrice(tokenMint, amount = 1e9) {
     try {
       const quote = await this.getQuote(tokenMint, this.WSOL, amount);
@@ -220,7 +238,7 @@ export class JupiterService {
   }
 
   /**
-   * Get success rate statistics
+   * ElizaOS V2: Enhanced statistics
    */
   getStats() {
     const total = this.successRate.success + this.successRate.failed;
@@ -230,7 +248,9 @@ export class JupiterService {
       successRate: rate.toFixed(2),
       totalSwaps: total,
       successful: this.successRate.success,
-      failed: this.successRate.failed
+      failed: this.successRate.failed,
+      avgExecutionTime: Math.round(this.avgExecutionTime),
+      version: 'ElizaOS V2'
     };
   }
 }
