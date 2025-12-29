@@ -1,11 +1,14 @@
 /**
  * AI Provider with Groq primary + fallback support
  * ESM module for existing agent architecture
+ *
+ * 🎯 TOKEN OPTIMIZER: Spart 50-70% Tokens durch JSON Kompression
  */
 
 import Groq from "groq-sdk";
 import axios from "axios";
 import { Logger } from "../utils/logger.js";
+import tokenOptimizer from "../utils/token-optimizer.js";
 
 const logger = new Logger("AIProvider");
 
@@ -22,6 +25,10 @@ export class AIProvider {
     this.groqModel = "llama-3.1-8b-instant"; // 4x faster than 70b
     this.groqTemperature = 0.1; // More deterministic
     this.groqMaxTokens = 30; // Minimal response for speed
+
+    // 🎯 Token Optimizer
+    this.tokenOptimizer = tokenOptimizer;
+    this.tokensSaved = 0;
 
     this.requestCounts = {
       groq: { count: 0, resetTime: Date.now() + 60000 },
@@ -141,6 +148,47 @@ export class AIProvider {
 
   trackRequest(provider) {
     this.requestCounts[provider].count++;
+  }
+
+  /**
+   * 🎯 OPTIMIZED ANALYSIS - Spart 50-70% Tokens!
+   * Nutzt komprimiertes JSON Format
+   */
+  async analyzeTokenOptimized(tokenData) {
+    // Komprimiere Token Data
+    const compact = this.tokenOptimizer.tokenToCompact(tokenData);
+    const savings = this.tokenOptimizer.estimateSavings(tokenData);
+    this.tokensSaved += savings.saved;
+
+    // Ultra-kurzer Prompt
+    const prompt = `Token:${compact}
+Analyze.Reply:BUY/SELL/HOLD|confidence0-100|reason(10words)`;
+
+    const response = await this.chat([
+      { role: "user", content: prompt }
+    ], {
+      maxTokens: 50 // Kurze Antwort
+    });
+
+    // Parse Antwort
+    const parts = response.content.split('|');
+    return {
+      action: parts[0]?.trim() || 'HOLD',
+      confidence: parseInt(parts[1]) || 50,
+      reason: parts[2]?.trim() || 'No reason',
+      tokensSaved: savings.saved,
+      provider: response.provider
+    };
+  }
+
+  /**
+   * 📊 Token Savings Stats
+   */
+  getTokenStats() {
+    return {
+      totalTokensSaved: this.tokensSaved,
+      estimatedCostSaved: `$${(this.tokensSaved * 0.00001).toFixed(4)}`
+    };
   }
 }
 
