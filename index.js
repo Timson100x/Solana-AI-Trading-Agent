@@ -28,6 +28,7 @@ import { WalletOptimizer } from "./src/services/wallet-optimizer.js";
 import { PrivateMempool } from "./src/services/private-mempool.js";
 import { JitoBundle } from "./src/services/jito-bundle.js";
 import { LiquidityMigration } from "./src/discovery/liquidity-migration.js";
+import { NLTelegramBridge } from "./src/services/nl-telegram-bridge.js";
 import { GodModeAnalyzer } from "./src/analyzers/god-mode-analyzer.js";
 import { TradeLogger } from "./src/utils/trade-logger.js";
 import { BackupManager } from "./src/utils/backup-manager.js";
@@ -109,6 +110,12 @@ class TradingAgent {
       // Initialize Telegram (needs agent reference)
       this.telegram = new TelegramService(this);
       this.positionManager.telegram = this.telegram;
+
+      // 🤖 NEW: Natural Language Command Handler (ElizaOS V2)
+      if (process.env.ENABLE_NL_COMMANDS !== "false") {
+        this.nlBridge = new NLTelegramBridge(this.telegram, this.gemini);
+        logger.success("✅ NL Auto-Deploy System initialized");
+      }
 
       // Auto-wrap SOL if enabled
       if (

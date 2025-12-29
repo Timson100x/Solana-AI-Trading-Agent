@@ -1,0 +1,86 @@
+name: Auto-Deploy to Contabo VPS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "bots/**"
+      - "src/**"
+      - "index.js"
+      - "package.json"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🔍 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 📦 Install Dependencies
+        run: npm ci --omit=dev
+
+      - name: ✅ Syntax Check
+        run: |
+          node -c index.js
+          find src -name "*.js" -type f -exec node -c {} \;
+
+      - name: 🌐 Deploy to VPS
+        if: ${{ secrets.VPS_HOST && secrets.VPS_SSH_KEY }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ${{ secrets.VPS_PATH || '/root/Solana-AI-Trading-Agent' }}
+            git pull origin main
+            npm install --omit=dev
+            pm2 restart solana-bot || pm2 start index.js --name solana-bot
+            pm2 save
+            sleep 5
+            pm2 status solana-bot
+
+      - name: 📊 Health Check
+        if: success()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            pm2 status solana-bot | grep online
+
+      - name: 💬 Telegram Notification
+        if: ${{ secrets.TELEGRAM_BOT_TOKEN && secrets.TELEGRAM_CHAT_ID }}
+        uses: appleboy/telegram-action@v0.1.1
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            🚀 Auto-Deploy Successful!
+
+            Repository: ${{ github.repository }}
+            Commit: ${{ github.event.head_commit.message }}
+            Author: ${{ github.actor }}
+
+            Bot restarted on VPS! 🔥
+
+      - name: 🆘 Failure Notification
+        if: failure()
+        uses: appleboy/telegram-action@v0.1.1
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            ❌ Auto-Deploy FAILED!
+
+            Check GitHub Actions for details.
+            Repository: ${{ github.repository }}
