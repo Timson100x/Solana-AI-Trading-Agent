@@ -10,17 +10,21 @@ const logger = new Logger("PumpFun");
 
 export class PumpFunService {
   constructor() {
+    // Official Pump.fun API endpoints (v1-v3 + advanced)
     this.endpoints = [
-      "https://frontend-api.pump.fun",
-      "https://api.pump.fun",
-      "https://pumpportal.fun/api",
+      "https://frontend-api.pump.fun", // v1: Basis endpoints
+      "https://frontend-api-v2.pump.fun", // v2: Extended features
+      "https://frontend-api-v3.pump.fun", // v3: Latest features
+      "https://advanced-api-v2.pump.fun", // Advanced: Market data
+      "https://pumpportal.fun/api", // Third-party fallback
     ];
     this.currentEndpointIndex = 0;
     this.apiUrl = this.endpoints[0];
     this.cache = new Map();
     this.cacheTTL = 3 * 60 * 1000; // 3 min
+    this.apiKey = process.env.PUMPFUN_API_KEY || null;
 
-    logger.success("✅ Pump.fun service initialized");
+    logger.success("✅ Pump.fun service initialized (Official API v1-v3)");
   }
 
   getFromCache(key) {
@@ -53,6 +57,19 @@ export class PumpFunService {
       if (cached) return cached;
 
       logger.info("🔍 Fetching trending coins from Pump.fun...");
+
+      // Official Pump.fun headers
+      const headers = {
+        Accept: "application/json",
+        Origin: "https://pump.fun",
+        Referer: "https://pump.fun/",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      };
+
+      if (this.apiKey) {
+        headers["Authorization"] = `Bearer ${this.apiKey}`;
+      }
 
       // Try all endpoints
       let lastError;
