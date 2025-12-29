@@ -19,16 +19,36 @@ export class JupiterService {
     this.connection = connection;
     this.wallet = wallet;
 
-    // 🚀 FIX: Use IP address instead of DNS hostname
-    // Cloudflare proxy for quote-api.jup.ag
-    this.baseUrl = "https://public.jupiterapi.com/v6"; // Alternative endpoint
+    // Jupiter Developer API (dev.jup.ag) - Official Endpoints
+    this.apiKey = process.env.JUPITER_API_KEY || null;
+    this.apiBase = "https://api.jup.ag";
+    this.ultraBase = "https://api.jup.ag/ultra";
 
-    // Fallback URLs
-    this.fallbackUrls = [
-      "https://quote-api.jup.ag/v6",
-      "https://public.jupiterapi.com/v6",
-      "https://jupiter-swap-api.quiknode.pro/v6",
-    ];
+    // Multi-tier endpoint support
+    this.endpoints = {
+      // Ultra Swap API (Recommended - end-to-end execution)
+      ultraSwap: `${this.ultraBase}/swap`,
+      ultraQuote: `${this.ultraBase}/quote`,
+
+      // Standard Swap API v6
+      quote: "https://quote-api.jup.ag/v6/quote",
+      swap: "https://quote-api.jup.ag/v6/swap",
+
+      // Price API v2/v3 (Source of truth)
+      priceV2: `${this.apiBase}/price/v2`,
+      priceV3: "https://price.jup.ag/v4/price",
+
+      // Tokens API (CDN)
+      tokens: "https://cache.jup.ag/tokens",
+      tokenList: "https://token.jup.ag/all",
+
+      // Fallbacks
+      fallbacks: [
+        "https://quote-api.jup.ag/v6",
+        "https://public.jupiterapi.com/v6",
+        "https://jupiter-swap-api.quiknode.pro/v6",
+      ],
+    };
 
     this.WSOL = "So11111111111111111111111111111111111111112";
 
@@ -37,9 +57,33 @@ export class JupiterService {
     this.avgExecutionTime = 0;
     this.executionCount = 0;
 
+    // API tier detection
+    this.tier = this.apiKey
+      ? this.apiKey.startsWith("ultra_")
+        ? "ultra"
+        : "pro"
+      : "free";
     this.currentUrlIndex = 0;
 
-    logger.success("✅ Jupiter V2 initialized (ElizaOS optimized + DNS fix)");
+    logger.success(
+      `✅ Jupiter V2 initialized (dev.jup.ag | ${this.tier} tier | ElizaOS optimized)`
+    );
+  }
+
+  /**
+   * Get headers with API key (if available)
+   */
+  getHeaders() {
+    const headers = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    };
+
+    if (this.apiKey) {
+      headers["x-api-key"] = this.apiKey;
+    }
+
+    return headers;
   }
 
   async getQuote(inputMint, outputMint, amount, options = {}) {
@@ -58,8 +102,9 @@ export class JupiterService {
           maxAccounts: options.maxAccounts || 64,
         };
 
-        const response = await axios.get(`${this.baseUrl}/quote`, {
+        const response = await axios.get(`${this.endpoints.quote}`, {
           params,
+          headers: this.getHeaders(),
           timeout: 10000,
         });
 
@@ -83,6 +128,11 @@ export class JupiterService {
         );
 
         if (attempt < maxRetries) {
+          // Try fallback URL
+          const fallbackUrl = this.endpoints.fallbacks[attempt % this.endpoints.fallbacks.length];
+          logger.warn(`⚠️ Retrying with fallback: ${fallbackUrl}`);
+          this.endpoints.quote = `${fallbackUrl}/quote`;
+          this.endpoints.swap = `${fallbackUrl}/swap`;
           await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
         }
       }
@@ -113,7 +163,7 @@ export class JupiterService {
 
       // Get serialized transaction from Jupiter
       const response = await axios.post(
-        `${this.baseUrl}/swap`,
+        `${this.endpoints.swap}`,
         {
           quoteResponse: quote,
           userPublicKey: this.wallet.getPublicKey().toBase58(),
@@ -124,7 +174,10 @@ export class JupiterService {
             priorityLevel: options.priorityLevel || "high",
           },
         },
-        { timeout: 15000 }
+        { 
+          headers: this.getHeaders(),
+          timeout: 15000,
+        }
       );
 
       if (!response.data || !response.data.swapTransaction) {
