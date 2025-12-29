@@ -20,6 +20,7 @@ UNTERSCHIED: ~6 Monate Development!
 ```
 
 **Bedeutung:**
+
 - Das **ElizaOS Framework** ist bei v1.7.0
 - Das **Solana Plugin** ist separat versioniert bei v1.2.6
 - Dein System nutzt **veraltete v0.1.9**
@@ -68,6 +69,7 @@ v1.7.1-alpha.1    23. Dez 2025 16:30 UTC (AKTUELL)
 ### **1. Generic Event Type System** ✅
 
 **Was ist neu:**
+
 ```typescript
 // VORHER (v1.6.x):
 interface EventPayload {
@@ -89,14 +91,15 @@ interface TradeEvent {
 }
 
 // Usage:
-emit<TradeEvent>('trade:executed', {
-  tokenMint: 'xxx',
+emit<TradeEvent>("trade:executed", {
+  tokenMint: "xxx",
   amount: 0.01,
-  signature: 'abc123'
+  signature: "abc123",
 });
 ```
 
 **Vorteile für dich:**
+
 - ✅ Type-Safety für Events
 - ✅ Better IDE Support
 - ✅ Compile-time Checks
@@ -105,6 +108,7 @@ emit<TradeEvent>('trade:executed', {
 ### **2. initPromise Support** ✅
 
 **Was ist neu:**
+
 ```typescript
 // VORHER (v1.6.x):
 class Plugin {
@@ -116,15 +120,15 @@ class Plugin {
 // NEU (v1.7.0+):
 class Plugin {
   initPromise: Promise<void>;
-  
+
   constructor() {
     this.initPromise = this.initialize();
   }
-  
+
   async initialize() {
     // Proper async init
   }
-  
+
   async ensureInitialized() {
     await this.initPromise;
   }
@@ -132,6 +136,7 @@ class Plugin {
 ```
 
 **Vorteile:**
+
 - ✅ Proper async initialization
 - ✅ Initialization race conditions gelöst
 - ✅ Better startup reliability
@@ -139,6 +144,7 @@ class Plugin {
 ### **3. Bootstrap Plugin Format Fixes** ✅
 
 **Was wurde gefixt:**
+
 ```typescript
 // Action/Provider Format Standardization
 // Message format improvements
@@ -158,12 +164,12 @@ class Plugin {
 
 const workflow = {
   steps: [
-    { name: 'verify', retry: 3, backoff: 1000 },
-    { name: 'quote', retry: 5, backoff: 2000 },
-    { name: 'execute', retry: 3, backoff: 5000 }
+    { name: "verify", retry: 3, backoff: 1000 },
+    { name: "quote", retry: 5, backoff: 2000 },
+    { name: "execute", retry: 3, backoff: 5000 },
   ],
-  onError: 'rollback',
-  timeout: 60000
+  onError: "rollback",
+  timeout: 60000,
 };
 
 // Exponential backoff automatic
@@ -179,11 +185,11 @@ const workflow = {
 // PR #6289: Bun.spawn statt Node.js child_process
 
 // VORHER:
-import { spawn } from 'child_process';
-const proc = spawn('command', args);
+import { spawn } from "child_process";
+const proc = spawn("command", args);
 
 // NEU:
-const proc = Bun.spawn(['command', ...args]);
+const proc = Bun.spawn(["command", ...args]);
 ```
 
 **Nicht relevant (du nutzt Node.js)**
@@ -230,12 +236,14 @@ GET /message-servers/:id/agents
 ### **Von v0.1.9 zu v1.2.6:**
 
 **Breaking Changes möglich:**
+
 - API method names geändert
 - Configuration structure updated
 - Dependencies upgraded
 - Error handling verbessert
 
 **Neue Features:**
+
 - Dynamic priority fees (besser als deine Implementation)
 - Transaction simulation
 - Better retry logic
@@ -263,6 +271,7 @@ GET /message-servers/:id/agents
 ```
 
 **Warum Plugin-Only:**
+
 - ✅ Du nutzt kein vollständiges ElizaOS Framework
 - ✅ Du hast nur das Solana Plugin als Dependency
 - ✅ ElizaOS v1.7.0 ist Framework-Release
@@ -285,6 +294,7 @@ GET /message-servers/:id/agents
 ```
 
 **Warum nicht:**
+
 - ❌ Dein System funktioniert bereits
 - ❌ Framework ist generisch (du bist spezialisiert)
 - ❌ Viel Arbeit für wenig Gewinn
@@ -507,7 +517,7 @@ Community Support:  +300% (mehr User)
 // Aus v1.7.0 Framework übernehmen:
 
 // 1. Typed Events (aus UPGRADE-PLAN.md)
-import { TypedEventBus } from './src/core/event-bus.js';
+import { TypedEventBus } from "./src/core/event-bus.js";
 
 // 2. initPromise Pattern
 class MyService {
@@ -520,7 +530,7 @@ class MyService {
 }
 
 // 3. Workflow Retry Logic (wenn v1.7.1 released)
-import { WorkflowEngine } from './src/core/workflow.js';
+import { WorkflowEngine } from "./src/core/workflow.js";
 ```
 
 ---
@@ -528,17 +538,20 @@ import { WorkflowEngine } from './src/core/workflow.js';
 ## 🔗 RESSOURCEN
 
 ### **ElizaOS Framework:**
+
 - Repository: https://github.com/elizaOS/eliza
 - Changelog: https://github.com/elizaOS/eliza/blob/develop/CHANGELOG.md (165 KB!)
 - v1.7.0 Commit: https://github.com/elizaOS/eliza/commit/fb62d7c838cfab78dbe9f50bb625890e9456273d
 - Documentation: https://eliza.how/
 
 ### **Solana Plugin:**
+
 - NPM: https://www.npmjs.com/package/@elizaos/plugin-solana
 - Versions: npm view @elizaos/plugin-solana versions
 - Latest: v1.2.6 (Stable)
 
 ### **Deine Dokumentation:**
+
 - UPGRADE-REPORT.md - Plugin Upgrade Guide
 - ELIZAOS-UPGRADE-PLAN.md - Hybrid Strategy
 - ELIZAOS-INTEGRATION.md - Current Implementation
@@ -589,24 +602,28 @@ npm view @elizaos/plugin-solana@1.2.6
 ## 🎯 ZUSAMMENFASSUNG
 
 ### **ElizaOS Framework v1.7.0:**
+
 - ✅ Released: 20. Dezember 2025
 - 🚀 Aktuelle Dev: v1.7.1-alpha.1
 - 📦 Hauptfeatures: Generic Events, initPromise, Bootstrap Fixes
 - 🎓 **Nicht direkt relevant** (du nutzt kein Framework)
 
 ### **@elizaos/plugin-solana v1.2.6:**
+
 - ✅ Latest Stable Version
 - 📊 6 Monate ahead of v0.1.9
 - 🚀 Production-Ready
 - 💡 **EMPFOHLEN zu upgraden**
 
 ### **Deine Strategie:**
+
 - ✅ Plugin upgraden: v0.1.9 → v1.2.6
 - ❌ Framework NICHT adopten (unnötig)
 - 🍒 Cherry-Pick Framework-Patterns
 - 📊 Schrittweises Upgrade (sicher)
 
 ### **Timeline:**
+
 ```
 Heute:       Backup & Decision
 Diese Woche: Plugin Upgrade (vorsichtig)

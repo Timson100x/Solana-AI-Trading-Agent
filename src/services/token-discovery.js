@@ -13,7 +13,7 @@ export class TokenDiscoveryService {
     this.sources = {
       birdeye: "https://public-api.birdeye.so",
       dexscreener: "https://api.dexscreener.com/latest",
-      jupiter: "https://tokens.jup.ag",
+      jupiter: "https://cache.jup.ag/tokens", // ✅ CDN endpoint (faster & more reliable)
     };
     this.bubblemaps = bubblemaps;
     this.coingecko = coingecko;
