@@ -30,17 +30,20 @@ TRADING_ENABLED=true
 ### Schritt 2: Sniper Bot starten
 
 **Via Natural Language:**
+
 ```
 /buildbot erstelle sniper bot für pump.fun tokens mit 200% take profit
 /deploy
 ```
 
 **Oder via Telegram Commands:**
+
 ```
 /sniper start
 ```
 
 **Oder dedizierter Bot:**
+
 ```bash
 # Generierter Bot starten
 node bots/sniper-bot-*.js
@@ -53,11 +56,13 @@ node bots/sniper-bot-*.js
 ### 1. Früh Einsteigen ($50-500 Liquidity)
 
 **Warum?**
+
 - Pump.fun tokens pumpen von $100 → $10,000+ liquidity
 - $50-500 = Ultra-früh Phase
 - Potenzial für 5-20x
 
 **Beispiel:**
+
 ```
 Token bei $100 liquidity gekauft → 3 Minuten später $2,000 liquidity = 20x möglich!
 ```
@@ -65,12 +70,14 @@ Token bei $100 liquidity gekauft → 3 Minuten später $2,000 liquidity = 20x m�
 ### 2. Schneller Exit (200% Take Profit)
 
 **3x und raus!**
+
 - Nicht greedy werden
 - 200% = 3x Profit
 - Dann nächster Snipe
 - Konsistenz > einzelne Moonshots
 
 **Berechnung:**
+
 ```
 0.05 SOL investiert
 → 3x = 0.15 SOL zurück
@@ -82,6 +89,7 @@ Token bei $100 liquidity gekauft → 3 Minuten später $2,000 liquidity = 20x m�
 ### 3. Tight Stop Loss (50%)
 
 **Schnell Verluste begrenzen:**
+
 - -50% stop loss
 - Rug pulls schnell erkennen
 - Kapital erhalten für nächsten Snipe
@@ -89,6 +97,7 @@ Token bei $100 liquidity gekauft → 3 Minuten später $2,000 liquidity = 20x m�
 ### 4. Max 3 Positionen gleichzeitig
 
 **Warum?**
+
 - Diversifikation
 - Nicht all-in auf einen Token
 - Immer Liquidität für neue Opportunities
@@ -100,10 +109,11 @@ Token bei $100 liquidity gekauft → 3 Minuten später $2,000 liquidity = 20x m�
 ### Jito Bundles (MEV Protection)
 
 ```javascript
-SNIPER_JITO_BUNDLE=true
+SNIPER_JITO_BUNDLE = true;
 ```
 
 **Vorteile:**
+
 - ✅ MEV Protection (kein Front-Running)
 - ✅ Garantierte Ausführung
 - ✅ Schnellere Fills
@@ -113,6 +123,7 @@ SNIPER_JITO_BUNDLE=true
 ### Auto-Position Management
 
 **Bot überwacht automatisch:**
+
 - ✅ Take Profit bei 200% → Auto-sell
 - ✅ Stop Loss bei -50% → Auto-sell
 - ✅ Trailing Stop nach 100% profit
@@ -122,10 +133,11 @@ SNIPER_JITO_BUNDLE=true
 ### Risk Management
 
 ```javascript
-SNIPER_DAILY_MAX_LOSS=0.2  // Max 0.2 SOL Verlust pro Tag
+SNIPER_DAILY_MAX_LOSS = 0.2; // Max 0.2 SOL Verlust pro Tag
 ```
 
 **Protection:**
+
 - Nach 0.2 SOL Verlust → Sniper stoppt automatisch
 - Reset um Mitternacht
 - Verhindert Tilting
@@ -137,6 +149,7 @@ SNIPER_DAILY_MAX_LOSS=0.2  // Max 0.2 SOL Verlust pro Tag
 ### Phase 1: Kleine Position (0.05 SOL)
 
 **Start:**
+
 ```
 Wallet Balance: 1 SOL
 Sniper Amount: 0.05 SOL per Trade
@@ -145,6 +158,7 @@ Trading Capital: 0.45 SOL (9x Snipes möglich)
 ```
 
 **Nach 10 erfolgreichen Snipes (60% win rate):**
+
 ```
 6 Wins á 0.10 SOL Profit = 0.60 SOL
 4 Losses á 0.025 SOL Loss = -0.10 SOL
@@ -156,11 +170,13 @@ New Balance: 1.50 SOL
 ### Phase 2: Scale Up (0.1 SOL)
 
 **Nach 0.5 SOL Profit:**
+
 ```
 SNIPER_BUY_AMOUNT=0.1  # 2x größere Position
 ```
 
 **Potential:**
+
 ```
 6 Wins á 0.20 SOL = 1.20 SOL
 4 Losses á 0.05 SOL = -0.20 SOL
@@ -203,14 +219,14 @@ Helius Pro: $50/month
 #### 1. Liquidity Sweet Spot ($50-500)
 
 ```javascript
-SNIPER_MIN_LIQ=50   // Nicht zu früh (scams)
-SNIPER_MAX_LIQ=500  // Nicht zu spät (pump vorbei)
+SNIPER_MIN_LIQ = 50; // Nicht zu früh (scams)
+SNIPER_MAX_LIQ = 500; // Nicht zu spät (pump vorbei)
 ```
 
 #### 2. Holder Check
 
 ```javascript
-minHolders: 10  // Min 10 holder (nicht nur dev)
+minHolders: 10; // Min 10 holder (nicht nur dev)
 ```
 
 #### 3. Age Filter
@@ -223,10 +239,11 @@ if (age > 300000) skip;
 #### 4. Jito Bundles
 
 ```javascript
-SNIPER_JITO_BUNDLE=true  // Garantierte Fills
+SNIPER_JITO_BUNDLE = true; // Garantierte Fills
 ```
 
 **Expected Win Rate mit diesen Filters:**
+
 - Without optimizations: 40-50%
 - With optimizations: 60-70%
 - With good RPC: 70-80%
@@ -248,6 +265,7 @@ SNIPER_JITO_BUNDLE=true  // Garantierte Fills
 ### Real-time Notifications
 
 **Bot sendet automatisch:**
+
 ```
 🎯 SNIPE SUCCESSFUL!
 Token: PUMP123
@@ -272,10 +290,11 @@ Total Profit: 0.87 SOL 🚀
 ### Daily Loss Limit
 
 ```javascript
-SNIPER_DAILY_MAX_LOSS=0.2  // Max 0.2 SOL loss per day
+SNIPER_DAILY_MAX_LOSS = 0.2; // Max 0.2 SOL loss per day
 ```
 
 **Protection:**
+
 - Bot stoppt automatisch nach 0.2 SOL Verlust
 - Verhindert große Verluste an schlechten Tagen
 - Reset um Mitternacht UTC
@@ -283,10 +302,11 @@ SNIPER_DAILY_MAX_LOSS=0.2  // Max 0.2 SOL loss per day
 ### Position Limits
 
 ```javascript
-SNIPER_MAX_POSITIONS=3  // Max 3 gleichzeitig
+SNIPER_MAX_POSITIONS = 3; // Max 3 gleichzeitig
 ```
 
 **Diversifikation:**
+
 - Nicht alles auf einen Token
 - Wenn einer rugpt → andere 2 können profitabel sein
 - Reduziert Gesamtrisiko
@@ -294,10 +314,11 @@ SNIPER_MAX_POSITIONS=3  // Max 3 gleichzeitig
 ### Tight Stop Loss
 
 ```javascript
-SNIPER_STOP_LOSS=50  // -50% auto-exit
+SNIPER_STOP_LOSS = 50; // -50% auto-exit
 ```
 
 **Schneller Exit bei:**
+
 - Rug Pulls
 - Liquidity Crashes
 - Dev Dumps
@@ -309,6 +330,7 @@ SNIPER_STOP_LOSS=50  // -50% auto-exit
 ### 1. Prime Time Trading
 
 **Beste Zeiten für Pump.fun Launches:**
+
 ```
 UTC 12:00-16:00  (US Morning)
 UTC 20:00-24:00  (US Evening)
@@ -319,6 +341,7 @@ UTC 20:00-24:00  (US Evening)
 ### 2. Stack Snipes
 
 **Nach erfolgreichem Snipe:**
+
 ```
 Profit reinvestieren in nächsten Snipe
 → Compound Gains
@@ -328,9 +351,10 @@ Profit reinvestieren in nächsten Snipe
 ### 3. Hot Streak Detection
 
 **Wenn 3+ Wins in Folge:**
+
 ```javascript
 // Increase position size temporär
-SNIPER_BUY_AMOUNT=0.075  // +50%
+SNIPER_BUY_AMOUNT = 0.075; // +50%
 ```
 
 **Ride the wave!** 🌊
@@ -338,9 +362,10 @@ SNIPER_BUY_AMOUNT=0.075  // +50%
 ### 4. Cold Streak Protection
 
 **Wenn 2+ Losses in Folge:**
+
 ```javascript
 // Reduce position size temporär
-SNIPER_BUY_AMOUNT=0.025  // -50%
+SNIPER_BUY_AMOUNT = 0.025; // -50%
 ```
 
 **Protect capital!** 🛡️
@@ -402,6 +427,7 @@ Month: ~26 SOL profit 🔥
 ## 🎯 UPGRADE TIMELINE
 
 ### Week 1: Free Tier
+
 ```
 RPC: Helius Free (1M calls)
 API: Public endpoints
@@ -409,6 +435,7 @@ Expected Win Rate: 50-60%
 ```
 
 ### Week 2: First Upgrades (Nach 2-3 SOL Profit)
+
 ```
 → QuickNode Pro ($50)
 → Schnellere Fills
@@ -416,6 +443,7 @@ Expected Win Rate: 50-60%
 ```
 
 ### Week 3-4: Full Stack (Nach 5-8 SOL Profit)
+
 ```
 → Helius Pro ($50)
 → Birdeye Pro ($99)
@@ -425,6 +453,7 @@ Expected Win Rate: 50-60%
 ```
 
 ### Month 2+: Premium Tier
+
 ```
 → QuickNode Ultra ($299)
 → Birdeye Premium ($299)
@@ -441,6 +470,7 @@ Expected Win Rate: 50-60%
 ### "Win Rate zu niedrig (<50%)"
 
 **Lösungen:**
+
 ```
 1. Tighten liquidity range (50-300 statt 50-500)
 2. Enable Jito Bundles
@@ -451,6 +481,7 @@ Expected Win Rate: 50-60%
 ### "Zu wenig Snipes"
 
 **Lösungen:**
+
 ```
 1. Erhöhe max liquidity (500 → 800)
 2. Reduziere scan interval (3s statt 5s)
@@ -460,6 +491,7 @@ Expected Win Rate: 50-60%
 ### "Zu viele Losses in Folge"
 
 **Lösungen:**
+
 ```
 1. Stop für 1 Stunde (mental reset)
 2. Reduce position size temporär
@@ -504,6 +536,7 @@ TRADING_ENABLED=true
 ---
 
 **Mit diesem Setup:**
+
 - ✅ 0.5-1 SOL Profit/Tag realistisch
 - ✅ Nach 1-2 Wochen: API Upgrades möglich
 - ✅ Mit besseren APIs: 2-3 SOL/Tag möglich
