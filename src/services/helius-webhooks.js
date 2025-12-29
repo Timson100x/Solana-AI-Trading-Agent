@@ -29,13 +29,20 @@ export class HeliusWebhooks {
       try {
         const transactions = req.body;
 
-        logger.info(`📨 Webhook: ${transactions.length} transactions`);
-
+        // Only log if transactions from tracked wallets
+        let trackedCount = 0;
         for (const tx of transactions) {
-          await this.handleTransaction(tx);
+          const tracked = await this.handleTransaction(tx);
+          if (tracked) trackedCount++;
         }
 
-        res.status(200).json({ status: "ok" });
+        if (trackedCount > 0) {
+          logger.info(
+            `📨 Webhook: ${trackedCount}/${transactions.length} tracked transactions`
+          );
+        }
+
+        res.status(200).json({ status: "ok", processed: trackedCount });
       } catch (error) {
         logger.error("Webhook error:", error);
         res.status(500).json({ error: error.message });
@@ -55,16 +62,20 @@ export class HeliusWebhooks {
         walletAddresses.includes(acc.account)
       );
 
-      if (!isTracked) return;
+      if (!isTracked) return false;
 
-      logger.info("🎯 Transaction from tracked wallet!");
+      logger.success("🎯 Transaction from tracked wallet!");
+      logger.info(`   Signature: ${tx.signature?.slice(0, 12)}...`);
 
       // Analyze with agent
       await this.agent.checkWallet({
         address: tx.accountData[0].account,
       });
+
+      return true;
     } catch (error) {
       logger.error("Handle transaction error:", error);
+      return false;
     }
   }
 
