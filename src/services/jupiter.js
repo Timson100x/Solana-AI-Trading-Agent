@@ -30,9 +30,13 @@ export class JupiterService {
       ultraSwap: `${this.ultraBase}/swap`,
       ultraQuote: `${this.ultraBase}/quote`,
 
-      // Standard Swap API v6
-      quote: "https://quote-api.jup.ag/v6/quote",
-      swap: "https://quote-api.jup.ag/v6/swap",
+      // Standard Swap API v6 - Try api.jup.ag first (works in most environments)
+      quote: this.apiKey
+        ? `${this.apiBase}/swap/v1/quote`
+        : "https://quote-api.jup.ag/v6/quote",
+      swap: this.apiKey
+        ? `${this.apiBase}/swap/v1/swap`
+        : "https://quote-api.jup.ag/v6/swap",
 
       // Price API v2/v3 (Source of truth)
       priceV2: `${this.apiBase}/price/v2`,
@@ -42,12 +46,16 @@ export class JupiterService {
       tokens: "https://cache.jup.ag/tokens",
       tokenList: "https://token.jup.ag/all",
 
-      // Fallbacks
+      // Fallbacks - add Raydium as last resort
       fallbacks: [
         "https://quote-api.jup.ag/v6",
         "https://public.jupiterapi.com/v6",
         "https://jupiter-swap-api.quiknode.pro/v6",
       ],
+
+      // Raydium fallback
+      raydiumQuote: "https://transaction-v1.raydium.io/compute/swap-base-in",
+      raydiumSwap: "https://transaction-v1.raydium.io/transaction/swap-base-in",
     };
 
     this.WSOL = "So11111111111111111111111111111111111111112";
@@ -232,19 +240,37 @@ export class JupiterService {
           ),
         ]);
       } catch (timeoutError) {
-        logger.warn(`Confirmation timeout for ${signature}, checking status...`);
-        
+        logger.warn(
+          `Confirmation timeout for ${signature}, checking status...`
+        );
+
         // ✅ Manual status check on timeout
-        const statusResponse = await this.connection.getSignatureStatus(signature);
-        
-        if (statusResponse.value?.confirmationStatus === "confirmed" || 
-            statusResponse.value?.confirmationStatus === "finalized") {
-          logger.success(`Transaction ${signature.slice(0, 16)}... was confirmed despite timeout!`);
+        const statusResponse = await this.connection.getSignatureStatus(
+          signature
+        );
+
+        if (
+          statusResponse.value?.confirmationStatus === "confirmed" ||
+          statusResponse.value?.confirmationStatus === "finalized"
+        ) {
+          logger.success(
+            `Transaction ${signature.slice(
+              0,
+              16
+            )}... was confirmed despite timeout!`
+          );
           // Continue normal flow
         } else if (statusResponse.value?.err) {
-          throw new Error(`Transaction failed: ${JSON.stringify(statusResponse.value.err)}`);
+          throw new Error(
+            `Transaction failed: ${JSON.stringify(statusResponse.value.err)}`
+          );
         } else {
-          throw new Error(`Transaction ${signature.slice(0, 16)}... status unclear after timeout!`);
+          throw new Error(
+            `Transaction ${signature.slice(
+              0,
+              16
+            )}... status unclear after timeout!`
+          );
         }
       }
 
