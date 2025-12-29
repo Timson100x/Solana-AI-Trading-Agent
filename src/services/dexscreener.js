@@ -3,17 +3,17 @@
  * Free API - No key required!
  */
 
-import axios from 'axios';
-import { Logger } from '../utils/logger.js';
+import axios from "axios";
+import { Logger } from "../utils/logger.js";
 
-const logger = new Logger('DEXScreener');
+const logger = new Logger("DEXScreener");
 
 export class DexScreenerService {
   constructor() {
-    this.baseUrl = 'https://api.dexscreener.com/latest';
-    this.solanaChainId = 'solana';
+    this.baseUrl = "https://api.dexscreener.com/latest";
+    this.solanaChainId = "solana";
 
-    logger.success('✅ DEXScreener service initialized');
+    logger.success("✅ DEXScreener service initialized");
   }
 
   /**
@@ -22,28 +22,27 @@ export class DexScreenerService {
   async getTrendingTokens(options = {}) {
     try {
       const {
-        minLiquidity = 50000,      // Min $50k liquidity
-        minVolume24h = 10000,      // Min $10k 24h volume
-        minPriceChange = 50,       // Min +50% price change
-        maxPriceChange = 1000,     // Max +1000% (avoid scams)
-        limit = 10
+        minLiquidity = 50000, // Min $50k liquidity
+        minVolume24h = 10000, // Min $10k 24h volume
+        minPriceChange = 50, // Min +50% price change
+        maxPriceChange = 1000, // Max +1000% (avoid scams)
+        limit = 10,
       } = options;
 
-      logger.info('🔍 Fetching trending Solana tokens...');
+      logger.info("🔍 Fetching trending Solana tokens...");
 
       // Get boosted tokens (trending)
-      const response = await axios.get(
-        `${this.baseUrl}/dex/tokens/boosted`
-      );
+      const response = await axios.get(`${this.baseUrl}/dex/tokens/boosted`);
 
       if (!response.data || !response.data.tokens) {
-        logger.warn('No trending tokens found');
+        logger.warn("No trending tokens found");
         return [];
       }
 
       // Filter Solana tokens
-      const solanaTokens = response.data.tokens
-        .filter(token => token.chainId === this.solanaChainId);
+      const solanaTokens = response.data.tokens.filter(
+        (token) => token.chainId === this.solanaChainId
+      );
 
       // Get detailed info for each token
       const detailedTokens = [];
@@ -52,12 +51,15 @@ export class DexScreenerService {
         try {
           const details = await this.getTokenDetails(token.tokenAddress);
 
-          if (details && this.meetsFilter(details, {
-            minLiquidity,
-            minVolume24h,
-            minPriceChange,
-            maxPriceChange
-          })) {
+          if (
+            details &&
+            this.meetsFilter(details, {
+              minLiquidity,
+              minVolume24h,
+              minPriceChange,
+              maxPriceChange,
+            })
+          ) {
             detailedTokens.push(details);
           }
         } catch (error) {
@@ -72,9 +74,8 @@ export class DexScreenerService {
       logger.success(`✅ Found ${sorted.length} trending tokens`);
 
       return sorted;
-
     } catch (error) {
-      logger.error('Failed to get trending tokens:', error);
+      logger.error("Failed to get trending tokens:", error);
       return [];
     }
   }
@@ -88,13 +89,17 @@ export class DexScreenerService {
         `${this.baseUrl}/dex/tokens/${tokenAddress}`
       );
 
-      if (!response.data || !response.data.pairs || response.data.pairs.length === 0) {
+      if (
+        !response.data ||
+        !response.data.pairs ||
+        response.data.pairs.length === 0
+      ) {
         return null;
       }
 
       // Get the most liquid pair
       const pairs = response.data.pairs
-        .filter(p => p.chainId === this.solanaChainId)
+        .filter((p) => p.chainId === this.solanaChainId)
         .sort((a, b) => (b.liquidity?.usd || 0) - (a.liquidity?.usd || 0));
 
       if (pairs.length === 0) return null;
@@ -119,11 +124,13 @@ export class DexScreenerService {
         priceChange1h: parseFloat(mainPair.priceChange?.h1 || 0),
         priceChange6h: parseFloat(mainPair.priceChange?.h6 || 0),
         buys24h: mainPair.txns?.h24?.buys || 0,
-        sells24h: mainPair.txns?.h24?.sells || 0
+        sells24h: mainPair.txns?.h24?.sells || 0,
       };
-
     } catch (error) {
-      logger.error(`Failed to get token details for ${tokenAddress}:`, error.message);
+      logger.error(
+        `Failed to get token details for ${tokenAddress}:`,
+        error.message
+      );
       return null;
     }
   }
@@ -132,31 +139,39 @@ export class DexScreenerService {
    * Check if token meets filter criteria
    */
   meetsFilter(token, filters) {
-    const {
-      minLiquidity,
-      minVolume24h,
-      minPriceChange,
-      maxPriceChange
-    } = filters;
+    const { minLiquidity, minVolume24h, minPriceChange, maxPriceChange } =
+      filters;
 
     // Basic checks
     if (token.liquidity < minLiquidity) {
-      logger.info(`${token.symbol}: Liquidity too low ($${token.liquidity.toFixed(0)})`);
+      logger.info(
+        `${token.symbol}: Liquidity too low ($${token.liquidity.toFixed(0)})`
+      );
       return false;
     }
 
     if (token.volume24h < minVolume24h) {
-      logger.info(`${token.symbol}: Volume too low ($${token.volume24h.toFixed(0)})`);
+      logger.info(
+        `${token.symbol}: Volume too low ($${token.volume24h.toFixed(0)})`
+      );
       return false;
     }
 
     if (token.priceChange24h < minPriceChange) {
-      logger.info(`${token.symbol}: Price change too low (${token.priceChange24h.toFixed(1)}%)`);
+      logger.info(
+        `${token.symbol}: Price change too low (${token.priceChange24h.toFixed(
+          1
+        )}%)`
+      );
       return false;
     }
 
     if (token.priceChange24h > maxPriceChange) {
-      logger.warn(`${token.symbol}: Price change suspiciously high (${token.priceChange24h.toFixed(1)}%)`);
+      logger.warn(
+        `${
+          token.symbol
+        }: Price change suspiciously high (${token.priceChange24h.toFixed(1)}%)`
+      );
       return false;
     }
 
@@ -166,7 +181,11 @@ export class DexScreenerService {
 
       // Too many sells compared to buys = dump
       if (buyToSellRatio < 0.5) {
-        logger.warn(`${token.symbol}: Too many sellers (ratio: ${buyToSellRatio.toFixed(2)})`);
+        logger.warn(
+          `${token.symbol}: Too many sellers (ratio: ${buyToSellRatio.toFixed(
+            2
+          )})`
+        );
         return false;
       }
     }
@@ -199,11 +218,10 @@ export class DexScreenerService {
         symbol: details.symbol,
         createdAt: details.createdAt,
         // These will be filled by Solana service
-        topHolders: []
+        topHolders: [],
       };
-
     } catch (error) {
-      logger.error('Failed to get top holders:', error);
+      logger.error("Failed to get top holders:", error);
       return null;
     }
   }
@@ -222,17 +240,16 @@ export class DexScreenerService {
       }
 
       return response.data.pairs
-        .filter(p => p.chainId === this.solanaChainId)
-        .map(p => ({
+        .filter((p) => p.chainId === this.solanaChainId)
+        .map((p) => ({
           address: p.baseToken.address,
           symbol: p.baseToken.symbol,
           name: p.baseToken.name,
           priceUsd: parseFloat(p.priceUsd || 0),
-          liquidity: parseFloat(p.liquidity?.usd || 0)
+          liquidity: parseFloat(p.liquidity?.usd || 0),
         }));
-
     } catch (error) {
-      logger.error('Search failed:', error);
+      logger.error("Search failed:", error);
       return [];
     }
   }
@@ -246,7 +263,11 @@ export class DexScreenerService {
         `${this.baseUrl}/dex/tokens/${tokenAddress}`
       );
 
-      if (!response.data || !response.data.pairs || response.data.pairs.length === 0) {
+      if (
+        !response.data ||
+        !response.data.pairs ||
+        response.data.pairs.length === 0
+      ) {
         return null;
       }
 
@@ -261,12 +282,14 @@ export class DexScreenerService {
         websites: info.websites || [],
         socials: info.socials || [],
         imageUrl: info.imageUrl,
-        header: info.header
+        header: info.header,
       };
-
     } catch (error) {
-      logger.error('Failed to get profile:', error);
+      logger.error("Failed to get profile:", error);
       return null;
     }
   }
 }
+
+// Export default instance
+export default new DexScreenerService();

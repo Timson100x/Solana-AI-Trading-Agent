@@ -2,9 +2,9 @@
  * Position Manager - Trading execution & risk management
  */
 
-import { Logger } from '../utils/logger.js';
+import { Logger } from "../utils/logger.js";
 
-const logger = new Logger('PositionManager');
+const logger = new Logger("PositionManager");
 
 export class PositionManager {
   constructor(wallet, jupiter, telegram, gemini) {
@@ -18,27 +18,37 @@ export class PositionManager {
     this.dailyPnL = 0;
 
     this.totalCapital = parseFloat(process.env.TOTAL_CAPITAL_SOL || 0.17);
-    this.maxPositionPercent = parseFloat(process.env.MAX_POSITION_PERCENT || 50);
-    this.minPositionSize = parseFloat(process.env.MIN_POSITION_SIZE_SOL || 0.01);
+    this.maxPositionPercent = parseFloat(
+      process.env.MAX_POSITION_PERCENT || 50
+    );
+    this.minPositionSize = parseFloat(
+      process.env.MIN_POSITION_SIZE_SOL || 0.01
+    );
 
-    this.stopLossPercent = parseFloat(process.env.STOP_LOSS_PERCENT || 15);
-    this.takeProfitPercent = parseFloat(process.env.TAKE_PROFIT_PERCENT || 30);
+    this.stopLossPercent = parseFloat(
+      process.env.STOP_LOSS_PERCENT || process.env.STOP_LOSS_PERCENTAGE || 15
+    );
+    this.takeProfitPercent = parseFloat(
+      process.env.TAKE_PROFIT_PERCENT ||
+        process.env.TAKE_PROFIT_PERCENTAGE ||
+        30
+    );
     this.maxDailyTrades = parseInt(process.env.MAX_DAILY_TRADES || 10);
 
     this.setupDayTradingClose();
     this.setupDailyReset();
 
-    logger.success('✅ Position Manager initialized');
+    logger.success("✅ Position Manager initialized");
   }
 
   setupDayTradingClose() {
-    const closeTime = process.env.CLOSE_ALL_POSITIONS_AT || '23:30';
-    const [hours, minutes] = closeTime.split(':').map(Number);
+    const closeTime = process.env.CLOSE_ALL_POSITIONS_AT || "23:30";
+    const [hours, minutes] = closeTime.split(":").map(Number);
 
     setInterval(() => {
       const now = new Date();
       if (now.getHours() === hours && now.getMinutes() === minutes) {
-        this.closeAllPositions('Day trading EOD close');
+        this.closeAllPositions("Day trading EOD close");
       }
     }, 60000);
 
@@ -67,11 +77,13 @@ export class PositionManager {
         Math.min(positionSize, maxPosition)
       );
 
-      logger.info(`📊 Position: ${finalSize.toFixed(4)} SOL (${confidence}% confidence)`);
+      logger.info(
+        `📊 Position: ${finalSize.toFixed(4)} SOL (${confidence}% confidence)`
+      );
 
       return finalSize;
     } catch (error) {
-      logger.error('Position sizing failed:', error);
+      logger.error("Position sizing failed:", error);
       return this.minPositionSize;
     }
   }
@@ -79,8 +91,8 @@ export class PositionManager {
   async openPosition(signal) {
     try {
       // Check trading enabled
-      if (process.env.TRADING_ENABLED !== 'true') {
-        logger.info('📝 Paper trading - signal logged only');
+      if (process.env.TRADING_ENABLED !== "true") {
+        logger.info("📝 Paper trading - signal logged only");
         return null;
       }
 
@@ -96,13 +108,17 @@ export class PositionManager {
       // Check balance
       const balance = await this.wallet.getWrappedSOLBalance();
       if (balance < positionSize) {
-        logger.warn(`⚠️  Insufficient balance: ${balance.toFixed(4)} < ${positionSize.toFixed(4)}`);
+        logger.warn(
+          `⚠️  Insufficient balance: ${balance.toFixed(
+            4
+          )} < ${positionSize.toFixed(4)}`
+        );
 
         await this.wallet.autoWrapForTrading();
 
         const newBalance = await this.wallet.getWrappedSOLBalance();
         if (newBalance < positionSize) {
-          logger.error('❌ Still insufficient after wrapping');
+          logger.error("❌ Still insufficient after wrapping");
           return null;
         }
       }
@@ -121,7 +137,7 @@ export class PositionManager {
         openedAt: new Date(),
         signal,
         stopLoss: this.stopLossPercent,
-        takeProfit: this.takeProfitPercent
+        takeProfit: this.takeProfitPercent,
       };
 
       this.positions.push(position);
@@ -129,18 +145,18 @@ export class PositionManager {
 
       await this.telegram.sendMessage(
         `🚀 *POSITION OPENED*\n\n` +
-        `Token: \`${signal.token.slice(0, 8)}...\`\n` +
-        `Size: ${positionSize.toFixed(4)} SOL\n` +
-        `Amount: ${trade.outputAmount.toFixed(6)}\n` +
-        `Confidence: ${signal.confidence}%\n` +
-        `Tx: \`${trade.signature.slice(0, 8)}...\``
+          `Token: \`${signal.token.slice(0, 8)}...\`\n` +
+          `Size: ${positionSize.toFixed(4)} SOL\n` +
+          `Amount: ${trade.outputAmount.toFixed(6)}\n` +
+          `Confidence: ${signal.confidence}%\n` +
+          `Tx: \`${trade.signature.slice(0, 8)}...\``
       );
 
       logger.success(`✅ Position opened: ${positionSize.toFixed(4)} SOL`);
 
       return position;
     } catch (error) {
-      logger.error('Failed to open position:', error);
+      logger.error("Failed to open position:", error);
       await this.telegram.sendMessage(`❌ Open failed: ${error.message}`);
       return null;
     }
@@ -161,29 +177,31 @@ export class PositionManager {
 
       this.dailyPnL += pnl;
 
-      this.positions = this.positions.filter(p => p.id !== position.id);
+      this.positions = this.positions.filter((p) => p.id !== position.id);
 
-      const emoji = pnl > 0 ? '💰' : '📉';
+      const emoji = pnl > 0 ? "💰" : "📉";
       await this.telegram.sendMessage(
         `${emoji} *POSITION CLOSED*\n\n` +
-        `Token: \`${position.token.slice(0, 8)}...\`\n` +
-        `Reason: ${reason}\n` +
-        `Invested: ${position.investedSOL.toFixed(4)} SOL\n` +
-        `Returned: ${exitSOL.toFixed(4)} SOL\n` +
-        `P&L: ${pnl > 0 ? '+' : ''}${pnl.toFixed(4)} SOL (${pnlPercent.toFixed(2)}%)\n` +
-        `Tx: \`${trade.signature.slice(0, 8)}...\``
+          `Token: \`${position.token.slice(0, 8)}...\`\n` +
+          `Reason: ${reason}\n` +
+          `Invested: ${position.investedSOL.toFixed(4)} SOL\n` +
+          `Returned: ${exitSOL.toFixed(4)} SOL\n` +
+          `P&L: ${pnl > 0 ? "+" : ""}${pnl.toFixed(
+            4
+          )} SOL (${pnlPercent.toFixed(2)}%)\n` +
+          `Tx: \`${trade.signature.slice(0, 8)}...\``
       );
 
-      logger.success(`✅ Closed: ${pnl > 0 ? '+' : ''}${pnl.toFixed(4)} SOL`);
+      logger.success(`✅ Closed: ${pnl > 0 ? "+" : ""}${pnl.toFixed(4)} SOL`);
 
       return { pnl, pnlPercent, exitSOL };
     } catch (error) {
-      logger.error('Failed to close position:', error);
+      logger.error("Failed to close position:", error);
       throw error;
     }
   }
 
-  async closeAllPositions(reason = 'Manual close') {
+  async closeAllPositions(reason = "Manual close") {
     logger.info(`🔒 Closing all positions: ${reason}`);
 
     for (const position of [...this.positions]) {
@@ -196,8 +214,10 @@ export class PositionManager {
 
     await this.telegram.sendMessage(
       `📊 *All positions closed*\n\n` +
-      `Reason: ${reason}\n` +
-      `Daily P&L: ${this.dailyPnL > 0 ? '+' : ''}${this.dailyPnL.toFixed(4)} SOL`
+        `Reason: ${reason}\n` +
+        `Daily P&L: ${this.dailyPnL > 0 ? "+" : ""}${this.dailyPnL.toFixed(
+          4
+        )} SOL`
     );
   }
 
@@ -207,17 +227,24 @@ export class PositionManager {
         // Get current price via Jupiter quote
         const quote = await this.jupiter.getQuote(
           position.token,
-          'So11111111111111111111111111111111111111112',
+          "So11111111111111111111111111111111111111112",
           position.amount
         );
 
         const currentValue = quote.outAmount / 1e9; // LAMPORTS to SOL
-        const pnlPercent = ((currentValue - position.investedSOL) / position.investedSOL) * 100;
+        const pnlPercent =
+          ((currentValue - position.investedSOL) / position.investedSOL) * 100;
 
         if (pnlPercent <= -position.stopLoss) {
-          await this.closePosition(position, `Stop loss (${pnlPercent.toFixed(2)}%)`);
+          await this.closePosition(
+            position,
+            `Stop loss (${pnlPercent.toFixed(2)}%)`
+          );
         } else if (pnlPercent >= position.takeProfit) {
-          await this.closePosition(position, `Take profit (${pnlPercent.toFixed(2)}%)`);
+          await this.closePosition(
+            position,
+            `Take profit (${pnlPercent.toFixed(2)}%)`
+          );
         }
       } catch (error) {
         logger.error(`Monitor failed for ${position.id}:`, error);
@@ -231,17 +258,17 @@ export class PositionManager {
       dailyTrades: this.dailyTrades,
       dailyPnL: this.dailyPnL,
       maxDailyTrades: this.maxDailyTrades,
-      positions: this.positions.map(p => ({
-        token: p.token.slice(0, 8) + '...',
+      positions: this.positions.map((p) => ({
+        token: p.token.slice(0, 8) + "...",
         invested: p.investedSOL,
-        openedAt: p.openedAt
-      }))
+        openedAt: p.openedAt,
+      })),
     };
   }
 
   resetDailyStats() {
     this.dailyTrades = 0;
     this.dailyPnL = 0;
-    logger.info('📊 Daily stats reset');
+    logger.info("📊 Daily stats reset");
   }
 }

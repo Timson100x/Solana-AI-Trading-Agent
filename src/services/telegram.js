@@ -3,10 +3,10 @@
  * ElizaOS-inspired with all commands
  */
 
-import TelegramBot from 'node-telegram-bot-api';
-import { Logger } from '../utils/logger.js';
+import TelegramBot from "node-telegram-bot-api";
+import { Logger } from "../utils/logger.js";
 
-const logger = new Logger('Telegram');
+const logger = new Logger("Telegram");
 
 export class TelegramService {
   constructor(agent) {
@@ -16,7 +16,7 @@ export class TelegramService {
     const chatId = process.env.TELEGRAM_CHAT_ID;
 
     if (!token || !chatId) {
-      throw new Error('TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured');
+      throw new Error("TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured");
     }
 
     this.bot = new TelegramBot(token, { polling: true });
@@ -24,7 +24,7 @@ export class TelegramService {
 
     this.setupCommands();
 
-    logger.success('✅ Telegram bot initialized');
+    logger.success("✅ Telegram bot initialized");
   }
 
   setupCommands() {
@@ -32,19 +32,21 @@ export class TelegramService {
     this.bot.onText(/\/start/, async (msg) => {
       if (msg.chat.id.toString() !== this.chatId) return;
 
-      const mode = process.env.TRADING_ENABLED === 'true' ? 
-        'LIVE TRADING 🔥' : 'Alert-Only Mode 🔔';
+      const mode =
+        process.env.TRADING_ENABLED === "true"
+          ? "LIVE TRADING 🔥"
+          : "Alert-Only Mode 🔔";
 
       const balance = await this.agent.wallet.getBalance();
       const wsol = await this.agent.wallet.getWrappedSOLBalance();
 
       await this.sendMessage(
         `🚀 *Solana AI Trading Agent*\n\n` +
-        `Mode: ${mode}\n` +
-        `Balance: ${balance.toFixed(4)} SOL\n` +
-        `wSOL: ${wsol.toFixed(4)} wSOL\n` +
-        `Status: Ready!\n\n` +
-        `Use /help for commands`
+          `Mode: ${mode}\n` +
+          `Balance: ${balance.toFixed(4)} SOL\n` +
+          `wSOL: ${wsol.toFixed(4)} wSOL\n` +
+          `Status: Ready!\n\n` +
+          `Use /help for commands`
       );
     });
 
@@ -53,16 +55,17 @@ export class TelegramService {
       if (msg.chat.id.toString() !== this.chatId) return;
 
       const stats = this.agent.getStats();
-      const mode = process.env.TRADING_ENABLED === 'true' ? '🟢 TRADING' : '🟡 ALERTS';
+      const mode =
+        process.env.TRADING_ENABLED === "true" ? "🟢 TRADING" : "🟡 ALERTS";
 
       await this.sendMessage(
         `📊 *Agent Status*\n\n` +
-        `Mode: ${mode}\n` +
-        `Uptime: ${stats.uptime} minutes\n` +
-        `Signals: ${stats.totalSignals}\n` +
-        `Trades: ${stats.totalTrades}\n` +
-        `Open Positions: ${stats.positions?.openPositions || 0}\n` +
-        `Daily P&L: ${stats.positions?.dailyPnL?.toFixed(4) || '0.0000'} SOL`
+          `Mode: ${mode}\n` +
+          `Uptime: ${stats.uptime} minutes\n` +
+          `Signals: ${stats.totalSignals}\n` +
+          `Trades: ${stats.totalTrades}\n` +
+          `Open Positions: ${stats.positions?.openPositions || 0}\n` +
+          `Daily P&L: ${stats.positions?.dailyPnL?.toFixed(4) || "0.0000"} SOL`
       );
     });
 
@@ -76,10 +79,13 @@ export class TelegramService {
 
       await this.sendMessage(
         `💰 *Wallet Balance*\n\n` +
-        `SOL: ${sol.toFixed(4)}\n` +
-        `wSOL: ${wsol.toFixed(4)}\n` +
-        `Total: ${total.toFixed(4)} SOL\n\n` +
-        `Address: \`${this.agent.wallet.getPublicKey().toBase58().slice(0, 8)}...\``
+          `SOL: ${sol.toFixed(4)}\n` +
+          `wSOL: ${wsol.toFixed(4)}\n` +
+          `Total: ${total.toFixed(4)} SOL\n\n` +
+          `Address: \`${this.agent.wallet
+            .getPublicKey()
+            .toBase58()
+            .slice(0, 8)}...\``
       );
     });
 
@@ -90,7 +96,7 @@ export class TelegramService {
       const positions = this.agent.positionManager.positions;
 
       if (positions.length === 0) {
-        await this.sendMessage('📍 No open positions');
+        await this.sendMessage("📍 No open positions");
         return;
       }
 
@@ -116,16 +122,16 @@ export class TelegramService {
 
       await this.sendMessage(
         `📊 *Trading Statistics*\n\n` +
-        `*System:*\n` +
-        `Uptime: ${stats.uptime}m\n` +
-        `Total Signals: ${stats.totalSignals}\n` +
-        `Total Trades: ${stats.totalTrades}\n\n` +
-        `*Jupiter:*\n` +
-        `Success Rate: ${jupiterStats.successRate}%\n` +
-        `Total Swaps: ${jupiterStats.totalSwaps}\n\n` +
-        `*AI:*\n` +
-        `Avg Response: ${aiStats.avgResponseTime}ms\n` +
-        `Total Requests: ${aiStats.totalRequests}`
+          `*System:*\n` +
+          `Uptime: ${stats.uptime}m\n` +
+          `Total Signals: ${stats.totalSignals}\n` +
+          `Total Trades: ${stats.totalTrades}\n\n` +
+          `*Jupiter:*\n` +
+          `Success Rate: ${jupiterStats.successRate}%\n` +
+          `Total Swaps: ${jupiterStats.totalSwaps}\n\n` +
+          `*AI:*\n` +
+          `Avg Response: ${aiStats.avgResponseTime}ms\n` +
+          `Total Requests: ${aiStats.totalRequests}`
       );
     });
 
@@ -136,15 +142,20 @@ export class TelegramService {
       const wallets = await this.agent.loadWallets();
 
       if (wallets.length === 0) {
-        await this.sendMessage('💼 No wallets tracked yet\n\nUse /scout to discover wallets');
+        await this.sendMessage(
+          "💼 No wallets tracked yet\n\nUse /scout to discover wallets"
+        );
         return;
       }
 
       let message = `💼 *Tracked Wallets (${wallets.length})*\n\n`;
 
       for (const wallet of wallets.slice(0, 10)) {
-        const perf = this.agent.performanceTracker.performanceData[wallet.address];
-        const wr = perf ? this.agent.performanceTracker.getWinRate(wallet.address) : 0;
+        const perf =
+          this.agent.performanceTracker.performanceData[wallet.address];
+        const wr = perf
+          ? this.agent.performanceTracker.getWinRate(wallet.address)
+          : 0;
 
         message += `\`${wallet.address.slice(0, 8)}...\`\n`;
         message += `WR: ${wr.toFixed(0)}% | `;
@@ -158,13 +169,15 @@ export class TelegramService {
     this.bot.onText(/\/scout/, async (msg) => {
       if (msg.chat.id.toString() !== this.chatId) return;
 
-      await this.sendMessage('🔍 Starting wallet scouting...\n\nThis may take 2-5 minutes');
+      await this.sendMessage(
+        "🔍 Starting wallet scouting...\n\nThis may take 2-5 minutes"
+      );
 
       try {
         const newWallets = await this.agent.walletScout.scoutNewWallets();
 
         if (newWallets.length === 0) {
-          await this.sendMessage('⚠️ No new profitable wallets found');
+          await this.sendMessage("⚠️ No new profitable wallets found");
           return;
         }
 
@@ -187,12 +200,12 @@ export class TelegramService {
     this.bot.onText(/\/review/, async (msg) => {
       if (msg.chat.id.toString() !== this.chatId) return;
 
-      await this.sendMessage('📊 Reviewing wallet performance...');
+      await this.sendMessage("📊 Reviewing wallet performance...");
 
       const removed = await this.agent.performanceTracker.reviewWallets();
 
       if (removed.length === 0) {
-        await this.sendMessage('✅ All wallets performing well!');
+        await this.sendMessage("✅ All wallets performing well!");
         return;
       }
 
@@ -213,13 +226,15 @@ export class TelegramService {
       const positions = this.agent.positionManager.positions;
 
       if (positions.length === 0) {
-        await this.sendMessage('📍 No positions to close');
+        await this.sendMessage("📍 No positions to close");
         return;
       }
 
       await this.sendMessage(`🔒 Closing ${positions.length} positions...`);
 
-      await this.agent.positionManager.closeAllPositions('Manual close via /close');
+      await this.agent.positionManager.closeAllPositions(
+        "Manual close via /close"
+      );
     });
 
     // Help command
@@ -228,36 +243,111 @@ export class TelegramService {
 
       await this.sendMessage(
         `📚 *Available Commands*\n\n` +
-        `/start - Start bot & status\n` +
-        `/status - Agent status\n` +
-        `/balance - Wallet balances\n` +
-        `/positions - Open positions\n` +
-        `/stats - Trading statistics\n` +
-        `/wallets - Tracked wallets\n` +
-        `/scout - Find new wallets\n` +
-        `/review - Review performance\n` +
-        `/close - Close all positions\n` +
-        `/help - This message`
+          `/start - Start bot & status\n` +
+          `/status - Agent status\n` +
+          `/balance - Wallet balances\n` +
+          `/positions - Open positions\n` +
+          `/stats - Trading statistics\n` +
+          `/wallets - Tracked wallets\n` +
+          `/scout - Find new wallets\n` +
+          `/review - Review performance\n` +
+          `/close - Close all positions\n` +
+          `/snipe <address> - \ud83d\udd25 1-Click Buy\n` +
+          `/profitlock - \ud83d\udd12 Lock +100% wins\n` +
+          `/help - This message`
       );
     });
 
-    logger.success('✅ All Telegram commands registered');
+    // \ud83d\udd25 TRICK #7: 1-CLICK SNIPE COMMAND
+    this.bot.onText(/\/snipe (.+)/, async (msg, match) => {
+      if (msg.chat.id.toString() !== this.chatId) return;
+
+      const tokenAddress = match[1].trim();
+
+      await this.sendMessage(
+        `\ud83c\udfaf Sniping ${tokenAddress.slice(0, 8)}...`
+      );
+
+      try {
+        // Verify token
+        const tokenVerifier = this.agent.tokenVerifier;
+        const verified = await tokenVerifier.verify(tokenAddress);
+
+        if (!verified.verified) {
+          await this.sendMessage(
+            `\u26a0\ufe0f *Snipe Rejected*\n\n` +
+              `Token: \`${tokenAddress}\`\n` +
+              `Risk Score: ${verified.riskScore}\n` +
+              `Reason: ${verified.redFlags.join(", ")}`
+          );
+          return;
+        }
+
+        // Execute trade
+        const autoTrader = this.agent.autoTrader;
+        const result = await autoTrader.execute({
+          address: tokenAddress,
+          size: "0.02 SOL",
+          source: "telegram_snipe",
+          verified,
+        });
+
+        if (result.executed) {
+          await this.sendMessage(
+            `\ud83d\ude80 *SNIPED!*\n\n` +
+              `Token: \`${tokenAddress}\`\n` +
+              `Amount: ${result.position.amount.toFixed(6)}\n` +
+              `Invested: ${result.position.investedSOL} SOL\n` +
+              `Risk: ${verified.riskScore}\n` +
+              `Signature: \`${result.trade.signature.slice(0, 16)}...\``
+          );
+        } else {
+          await this.sendMessage(
+            `\u274c *Snipe Failed*\n\n` + `Reason: ${result.reason}`
+          );
+        }
+      } catch (error) {
+        await this.sendMessage(`\u274c *Snipe Error*\n\n${error.message}`);
+      }
+    });
+
+    // \ud83d\udd25 PROFIT LOCK COMMAND
+    this.bot.onText(/\/profitlock/, async (msg) => {
+      if (msg.chat.id.toString() !== this.chatId) return;
+
+      try {
+        const profitLocker = this.agent.profitLocker;
+
+        if (!profitLocker) {
+          await this.sendMessage("\u26a0\ufe0f Profit locker not initialized");
+          return;
+        }
+
+        await this.sendMessage(
+          "\ud83d\udd12 Checking positions for profit locking..."
+        );
+        await profitLocker.checkAndLockProfits();
+        await this.sendMessage("\u2705 Profit lock check complete!");
+      } catch (error) {
+        await this.sendMessage(`\u274c Profit lock error: ${error.message}`);
+      }
+    });
+
+    logger.success("✅ All Telegram commands registered");
   }
 
   async sendMessage(text) {
     try {
       await this.bot.sendMessage(this.chatId, text, {
-        parse_mode: 'Markdown',
-        disable_web_page_preview: true
+        parse_mode: "Markdown",
+        disable_web_page_preview: true,
       });
     } catch (error) {
-      logger.error('Failed to send message:', error);
+      logger.error("Failed to send message:", error);
     }
   }
 
   async sendAlert(alert) {
-    await this.sendMessage(
-      `🚨 *${alert.title}*\n\n${alert.message}`
-    );
+    await this.sendMessage(`🚨 *${alert.title}*\n\n${alert.message}`);
   }
 }
