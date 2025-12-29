@@ -13,6 +13,9 @@ export class HeliusWebhooks {
     this.agent = agent;
     this.webhookUrl = null;
     this.enabled = process.env.HELIUS_WEBHOOKS === 'true';
+    this.apiKey = process.env.HELIUS_API_KEY || '';
+    this.baseUrl = `https://api-mainnet.helius-rpc.com/v0`;
+    this.wsUrl = `wss://mainnet.helius-rpc.com/?api-key=${this.apiKey}`;
   }
 
   setup(app) {
