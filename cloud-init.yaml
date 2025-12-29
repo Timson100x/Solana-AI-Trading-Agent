@@ -1,0 +1,117 @@
+#cloud-config
+# 🚀 Solana AI Trading Bot - Auto Deploy
+# Für Contabo, Hetzner, DigitalOcean etc.
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - git
+  - build-essential
+  - jq
+
+runcmd:
+  # 1. Install Node.js 20
+  - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  - apt-get install -y nodejs
+
+  # 2. Install PM2 globally
+  - npm install -g pm2
+
+  # 3. Clone Repository
+  - cd /root
+  - git clone https://github.com/Timson100x/Solana-AI-Trading-Agent.git
+  - cd Solana-AI-Trading-Agent
+
+  # 4. Install Dependencies
+  - npm install
+
+  # 5. Create .env file (⚠️ SETZE DEINE KEYS!)
+  - |
+    cat > .env << 'EOF'
+    # Solana RPC
+    RPC_ENDPOINT=YOUR_HELIUS_RPC_ENDPOINT
+    HELIUS_API_KEY=YOUR_HELIUS_API_KEY
+
+    # Wallet (⚠️ WICHTIG: Setze deinen Private Key!)
+    WALLET_PRIVATE_KEY=YOUR_PRIVATE_KEY_HERE
+
+    # Telegram
+    TELEGRAM_BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
+    TELEGRAM_CHAT_ID=YOUR_TELEGRAM_CHAT_ID
+
+    # AI Providers
+    GROQ_API_KEY=YOUR_GROQ_API_KEY
+    GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+
+    # Jupiter (optional)
+    JUPITER_API_KEY=YOUR_JUPITER_API_KEY
+
+    # Trading Settings
+    TRADING_ENABLED=false
+    AUTO_TRADING_ENABLED=false
+    MIN_CONFIDENCE=75
+    MAX_TRADE_AMOUNT=0.02
+    SLIPPAGE_BPS=150
+    STOP_LOSS_PERCENTAGE=15
+    TAKE_PROFIT_PERCENTAGE=30
+
+    # Network
+    PORT=3000
+    NODE_ENV=production
+    EOF
+
+  # 6. Set Permissions
+  - chmod 600 /root/Solana-AI-Trading-Agent/.env
+
+  # 7. Start Bot with PM2
+  - cd /root/Solana-AI-Trading-Agent
+  - pm2 start index.js --name trading-bot
+  - pm2 save
+  - pm2 startup systemd -u root --hp /root
+
+  # 8. Enable PM2 auto-restart
+  - env PATH=$PATH:/usr/bin pm2 startup systemd -u root --hp /root
+
+  # 9. Send success notification (disabled - set your own)
+  # - |
+  #   curl -s "https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage" \
+  #     -d "chat_id=YOUR_CHAT_ID" \
+  #     -d "text=VPS Deployed!"
+
+write_files:
+  - path: /root/setup-complete.txt
+    content: |
+      🚀 Solana AI Trading Bot Setup Complete!
+
+      Next Steps:
+      1. ssh root@$(curl -s ifconfig.me)
+      2. nano ~/Solana-AI-Trading-Agent/.env
+      3. Set WALLET_PRIVATE_KEY
+      4. pm2 restart trading-bot
+      5. pm2 logs trading-bot
+
+      Commands:
+      - pm2 status
+      - pm2 logs trading-bot
+      - pm2 restart trading-bot
+      - pm2 stop trading-bot
+
+      Location: /root/Solana-AI-Trading-Agent
+    permissions: "0644"
+
+final_message: |
+  ╔═══════════════════════════════════════════╗
+  ║  🚀 SOLANA AI TRADING BOT INSTALLED!      ║
+  ╠═══════════════════════════════════════════╣
+  ║  ✅ Node.js 20                            ║
+  ║  ✅ PM2 Process Manager                   ║
+  ║  ✅ Bot Repository                        ║
+  ║  ✅ Dependencies                          ║
+  ║  ⚠️  SET PRIVATE KEY!                     ║
+  ╚═══════════════════════════════════════════╝
+
+  SSH: ssh root@YOUR_VPS_IP
+  Edit: nano ~/Solana-AI-Trading-Agent/.env
+  Restart: pm2 restart trading-bot
