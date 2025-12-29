@@ -22,15 +22,15 @@ export class JupiterService {
     // Jupiter Developer API (dev.jup.ag) - Official Endpoints
     this.apiKey = process.env.JUPITER_API_KEY || null;
     this.apiBase = "https://api.jup.ag";
-    this.ultraBase = "https://api.jup.ag/ultra";
+    this.ultraBase = "https://api.jup.ag/ultra/v1";
 
     // Multi-tier endpoint support
     this.endpoints = {
-      // Ultra Swap API (Recommended - end-to-end execution)
-      ultraSwap: `${this.ultraBase}/swap`,
-      ultraQuote: `${this.ultraBase}/quote`,
+      // Ultra Swap API (Recommended - end-to-end execution with API key)
+      ultraOrder: `${this.ultraBase}/order`,
+      ultraExecute: `${this.ultraBase}/execute`,
 
-      // Standard Swap API v6 - Try api.jup.ag first (works in most environments)
+      // Standard Swap API - Use Ultra if API key available
       quote: this.apiKey
         ? `${this.apiBase}/swap/v1/quote`
         : "https://quote-api.jup.ag/v6/quote",
@@ -38,22 +38,19 @@ export class JupiterService {
         ? `${this.apiBase}/swap/v1/swap`
         : "https://quote-api.jup.ag/v6/swap",
 
-      // Price API v2/v3 (Source of truth)
+      // Price API v2 (Source of truth)
       priceV2: `${this.apiBase}/price/v2`,
-      priceV3: "https://price.jup.ag/v4/price",
 
-      // Tokens API (CDN)
-      tokens: "https://cache.jup.ag/tokens",
-      tokenList: "https://token.jup.ag/all",
+      // Tokens API
+      tokens: `${this.apiBase}/tokens/v1`,
 
-      // Fallbacks - add Raydium as last resort
+      // Fallbacks for free tier
       fallbacks: [
         "https://quote-api.jup.ag/v6",
         "https://public.jupiterapi.com/v6",
-        "https://jupiter-swap-api.quiknode.pro/v6",
       ],
 
-      // Raydium fallback
+      // Raydium fallback (always works)
       raydiumQuote: "https://transaction-v1.raydium.io/compute/swap-base-in",
       raydiumSwap: "https://transaction-v1.raydium.io/transaction/swap-base-in",
     };
@@ -147,15 +144,67 @@ export class JupiterService {
       }
     }
 
-    throw new Error(
-      `Failed to get quote after ${maxRetries} attempts: ${lastError.message}`
-    );
+    // Try Raydium as last resort
+    logger.warn("⚠️ Jupiter failed, trying Raydium fallback...");
+    return this.getQuoteViaRaydium(inputMint, outputMint, amount, options);
+  }
+
+  /**
+   * Raydium fallback for quotes when Jupiter is unavailable
+   */
+  async getQuoteViaRaydium(inputMint, outputMint, amount, options = {}) {
+    try {
+      const params = new URLSearchParams({
+        inputMint,
+        outputMint,
+        amount: Math.floor(amount).toString(),
+        slippageBps: (options.slippageBps || 150).toString(),
+        txVersion: "V0",
+      });
+
+      const response = await axios.get(
+        `${this.endpoints.raydiumQuote}?${params}`,
+        { timeout: 15000 }
+      );
+
+      if (!response.data.success) {
+        throw new Error(`Raydium quote failed: ${response.data.msg}`);
+      }
+
+      const data = response.data.data;
+      logger.info(
+        `📊 Raydium Quote: ${(amount / 1e9).toFixed(4)} → ${(
+          data.outputAmount / 1e9
+        ).toFixed(6)}`
+      );
+
+      // Return in Jupiter-compatible format
+      return {
+        inputMint,
+        outputMint,
+        inAmount: data.inputAmount,
+        outAmount: data.outputAmount,
+        otherAmountThreshold: data.otherAmountThreshold,
+        slippageBps: data.slippageBps,
+        priceImpactPct: data.priceImpactPct,
+        routePlan: data.routePlan,
+        _raydium: true, // Flag for swap method
+        _rawData: data,
+      };
+    } catch (error) {
+      throw new Error(`Raydium fallback failed: ${error.message}`);
+    }
   }
 
   /**
    * ElizaOS V2: Enhanced swap with dynamic priority fees
    */
   async executeSwap(quote, options = {}) {
+    // Use Raydium swap if quote came from Raydium
+    if (quote._raydium) {
+      return this.executeSwapViaRaydium(quote, options);
+    }
+
     try {
       const startTime = Date.now();
 
@@ -304,6 +353,73 @@ export class JupiterService {
     } catch (error) {
       this.successRate.failed++;
       logger.error("Swap V2 execution failed:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute swap via Raydium when Jupiter is unavailable
+   */
+  async executeSwapViaRaydium(quote, options = {}) {
+    try {
+      const startTime = Date.now();
+      logger.info("🔄 Executing swap via Raydium fallback...");
+
+      // Get swap transaction from Raydium
+      const response = await axios.post(
+        this.endpoints.raydiumSwap,
+        {
+          computeUnitPriceMicroLamports: "100000",
+          swapResponse: quote._rawData,
+          txVersion: "V0",
+          wallet: this.wallet.getPublicKey().toBase58(),
+          wrapSol: true,
+          unwrapSol: true,
+        },
+        { timeout: 15000 }
+      );
+
+      if (!response.data.success) {
+        throw new Error(`Raydium swap failed: ${response.data.msg}`);
+      }
+
+      // Deserialize and sign transaction
+      const txBuf = Buffer.from(response.data.data.transaction, "base64");
+      const transaction = VersionedTransaction.deserialize(txBuf);
+      transaction.sign([this.wallet.keypair]);
+
+      // Send transaction
+      const signature = await this.connection.sendRawTransaction(
+        transaction.serialize(),
+        { skipPreflight: false, maxRetries: 3 }
+      );
+
+      logger.info(`📤 Raydium TX sent: ${signature.slice(0, 12)}...`);
+
+      // Wait for confirmation
+      await this.connection.confirmTransaction(signature, "confirmed");
+
+      const executionTime = Date.now() - startTime;
+      this.successRate.success++;
+
+      logger.success(
+        `✅ Raydium swap executed: ${signature.slice(
+          0,
+          8
+        )}... (${executionTime}ms)`
+      );
+
+      return {
+        signature,
+        inputAmount: quote.inAmount,
+        outputAmount: quote.outAmount,
+        executionTime,
+        quote,
+        via: "raydium",
+      };
+    } catch (error) {
+      this.successRate.failed++;
+      logger.error("Raydium swap failed:", error);
       throw error;
     }
   }
