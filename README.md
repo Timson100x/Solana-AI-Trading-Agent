@@ -82,6 +82,7 @@ Telegram: /start
 - ✅ Multi-Source Data (Rugcheck, Birdeye, DexScreener)
 - ✅ Automated Trading (24/7 operation)
 - ✅ Risk Management (Stop-loss, take-profit)
+- ✅ **Helius Webhooks** (Real-time notifications)
 
 ### ElizaOS V2 Performance
 - ⚡ 30-50% Faster Transactions
@@ -95,6 +96,7 @@ Telegram: /start
 - 🌐 Web Dashboard (Real-time monitoring)
 - 🔌 REST API (Integration ready)
 - 💬 Chat Integration (Ask me anytime!)
+- 🔔 **Webhook Support** (Instant trade alerts)
 
 ### Multi-Platform (NEW!)
 - 💬 Discord (Community alerts)
@@ -132,6 +134,7 @@ Telegram: /start
 - **WEB-DASHBOARD-GUIDE.md** → Dashboard docs
 - **EXTERNAL-API-GUIDE.md** → Chat integration
 - **MULTI-PLATFORM-GUIDE.md** → Social media setup
+- **HELIUS-WEBHOOK-GUIDE.md** → Real-time webhooks setup
 - **ELIZAOS-V2-MIGRATION.md** → V2 improvements
 
 ### Development:

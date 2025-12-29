@@ -94,6 +94,9 @@ class TradingAgent {
       this.setupAPI();
       this.helius = new HeliusWebhooks(this);
       this.helius.setup(this.app);
+      
+      // Initialize webhook if enabled
+      await this.helius.initialize();
 
       logger.success('✅ All services initialized');
 
@@ -352,6 +355,7 @@ class TradingAgent {
       totalSignals: this.stats.totalSignals,
       totalTrades: this.stats.totalTrades,
       positions: this.positionManager.getStats(),
+      webhooks: this.helius ? this.helius.getStatus() : { enabled: false },
       config: {
         tradingEnabled: process.env.TRADING_ENABLED === 'true',
         capital: parseFloat(process.env.TOTAL_CAPITAL_SOL || 0.17),
