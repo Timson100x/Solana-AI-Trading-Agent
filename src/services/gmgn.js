@@ -10,17 +10,18 @@ const logger = new Logger("GMGN");
 
 export class GmgnService {
   constructor() {
-    // Multiple endpoints for failover
+    // Multiple endpoints for failover (gmgn.cc removed - DNS doesn't exist)
     this.endpoints = [
       "https://gmgn.ai/defi/quotation/v1",
       "https://api.gmgn.ai/defi/quotation/v1",
-      "https://gmgn.cc/defi/quotation/v1",
     ];
     this.currentEndpointIndex = 0;
     this.baseUrl = this.endpoints[0];
     this.solanaChain = "sol";
     this.cache = new Map();
     this.cacheTTL = 10 * 60 * 1000; // 10 minutes (longer due to rate limits)
+    this.lastRequest = 0;
+    this.minDelay = 500; // 2 req/s = 500ms delay
 
     logger.success("✅ GMGN.ai service initialized (rate-limited: 2 req/s)");
   }

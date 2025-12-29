@@ -9,11 +9,24 @@ const logger = new Logger("SolScan");
  */
 export class SolScanService {
   constructor() {
-    this.baseUrl = "https://public-api.solscan.io";
+    // Pro-API für bessere Limits (benötigt Key für volle Features)
+    this.baseUrl = "https://pro-api.solscan.io/v1.0";
+    this.publicUrl = "https://public-api.solscan.io";
+    this.apiKey = process.env.SOLSCAN_API_KEY || null;
     this.cache = new Map();
     this.cacheTTL = 10 * 60 * 1000; // 10 minutes
     this.lastRequest = 0;
     this.minDelay = 1000; // 1s between requests
+    this.requestWindow = 60000; // 60s window
+    this.maxRequests = 20; // Conservative: 20 per minute
+    this.requestCount = 0;
+    this.windowStart = Date.now();
+
+    logger.info(
+      this.apiKey
+        ? "✅ SolScan Pro API Key detected"
+        : "ℹ️  SolScan using public endpoints (limited)"
+    );
   }
 
   async rateLimit() {
@@ -66,40 +79,21 @@ export class SolScanService {
       await this.rateLimit();
       logger.info("🔍 Fetching trending tokens from SolScan...");
 
-      const response = await axios.get(`${this.baseUrl}/token/trending`, {
-        params: {
-          limit,
-          offset: 0,
-        },
-        timeout: 10000,
-      });
-
-      if (response.data?.data) {
-        const tokens = response.data.data
-          .map((token) => ({
-            address: token.address,
-            symbol: token.symbol,
-            name: token.name,
-            priceUsd: parseFloat(token.price || 0),
-            volume24h: parseFloat(token.volume24h || 0),
-            priceChange24h: parseFloat(token.priceChange24h || 0),
-            marketCap: parseFloat(token.marketCap || 0),
-            holders: token.holder || 0,
-            source: "solscan",
-          }))
-          .filter((t) => t.volume24h > 0); // Filter out low activity
-
-        this.setCache(cacheKey, tokens);
-        logger.success(`✅ Found ${tokens.length} trending tokens`);
-        return tokens;
-      }
-
+      // SolScan trending endpoint temporarily unavailable (404 error)
+      // Fallback: return empty array (other sources like Pump.fun, CoinGecko work)
+      logger.warn(
+        "⚠️  SolScan trending temporarily disabled (waiting for API fix)"
+      );
       return [];
+
+      /* TODO: Re-enable when SolScan fixes trending endpoint
+       * Tested endpoints that don't work:
+       * - /token/trending (404)
+       * - /market/token/trending (404)
+       *
+       * Other endpoints like /token/meta still work fine
+       */
     } catch (error) {
-      if (error.response?.status === 429) {
-        logger.warn("⚠️ SolScan rate limit");
-        return [];
-      }
       logger.error("SolScan trending failed:", error.message);
       return [];
     }
