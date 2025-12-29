@@ -252,6 +252,7 @@ export class TelegramService {
           `/scout - Find new wallets\n` +
           `/review - Review performance\n` +
           `/close - Close all positions\n` +
+          `/buy <token> <sol> - 🛒 Direct buy\n` +
           `/snipe <address> - \ud83d\udd25 1-Click Buy\n` +
           `/profitlock - \ud83d\udd12 Lock +100% wins\n` +
           `/help - This message`
@@ -308,6 +309,103 @@ export class TelegramService {
         }
       } catch (error) {
         await this.sendMessage(`\u274c *Snipe Error*\n\n${error.message}`);
+      }
+    });
+
+    // 🛒 BUY COMMAND - Direct token purchase
+    this.bot.onText(/\/buy (.+)/, async (msg, match) => {
+      if (msg.chat.id.toString() !== this.chatId) return;
+
+      const args = match[1].trim().split(/\s+/);
+      const tokenAddress = args[0];
+      const amountSOL = parseFloat(args[1] || "0.01");
+
+      if (!tokenAddress || tokenAddress.length < 32) {
+        await this.sendMessage(
+          `❌ *Ungültiger Befehl*\n\n` +
+            `Verwendung: \`/buy <token_address> <sol_amount>\`\n\n` +
+            `Beispiel:\n\`/buy EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v 0.01\``
+        );
+        return;
+      }
+
+      if (isNaN(amountSOL) || amountSOL < 0.001) {
+        await this.sendMessage(`❌ Mindestbetrag: 0.001 SOL`);
+        return;
+      }
+
+      if (process.env.TRADING_ENABLED !== "true") {
+        await this.sendMessage(
+          `⚠️ *Trading deaktiviert*\n\n` +
+            `Setze \`TRADING_ENABLED=true\` in .env um zu handeln.`
+        );
+        return;
+      }
+
+      await this.sendMessage(
+        `🛒 *Kaufe Token...*\n\n` +
+          `Token: \`${tokenAddress.slice(0, 16)}...\`\n` +
+          `Betrag: ${amountSOL} SOL\n\n` +
+          `⏳ Hole Quote von Jupiter...`
+      );
+
+      try {
+        const WSOL = "So11111111111111111111111111111111111111112";
+        const lamports = Math.floor(amountSOL * 1e9);
+
+        // Get quote
+        const quote = await this.agent.jupiter.getQuote(
+          WSOL,
+          tokenAddress,
+          lamports
+        );
+
+        if (!quote) {
+          await this.sendMessage(
+            `❌ Kein Quote erhalten - Token möglicherweise nicht handelbar`
+          );
+          return;
+        }
+
+        const outAmount = parseInt(quote.outAmount);
+        const priceImpact = parseFloat(quote.priceImpactPct || 0);
+
+        await this.sendMessage(
+          `📊 *Quote erhalten*\n\n` +
+            `Input: ${amountSOL} SOL\n` +
+            `Output: ${(outAmount / 1e6).toFixed(6)} Token\n` +
+            `Price Impact: ${priceImpact.toFixed(4)}%\n\n` +
+            `🔄 Führe Swap aus...`
+        );
+
+        // Execute swap
+        const result = await this.agent.jupiter.executeSwap(quote);
+
+        if (result && result.signature) {
+          await this.sendMessage(
+            `✅ *KAUF ERFOLGREICH!*\n\n` +
+              `Token: \`${tokenAddress.slice(0, 16)}...\`\n` +
+              `Investiert: ${amountSOL} SOL\n` +
+              `Signature: \`${result.signature.slice(0, 20)}...\`\n\n` +
+              `[Auf Solscan ansehen](https://solscan.io/tx/${result.signature})`
+          );
+
+          // Add to position manager
+          await this.agent.positionManager.openPosition({
+            token: tokenAddress,
+            amount: outAmount,
+            investedSOL: amountSOL,
+            entryPrice: amountSOL / (outAmount / 1e6),
+            signature: result.signature,
+            source: "telegram_buy",
+          });
+        } else {
+          await this.sendMessage(
+            `❌ Swap fehlgeschlagen: ${result?.error || "Unbekannter Fehler"}`
+          );
+        }
+      } catch (error) {
+        await this.sendMessage(`❌ *Kauf fehlgeschlagen*\n\n${error.message}`);
       }
     });
 
