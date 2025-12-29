@@ -143,6 +143,9 @@ export class PositionManager {
       this.positions.push(position);
       this.dailyTrades++;
 
+      // ✅ Invalidate wallet cache
+      this.wallet.invalidateCache();
+
       await this.telegram.sendMessage(
         `🚀 *POSITION OPENED*\n\n` +
           `Token: \`${signal.token.slice(0, 8)}...\`\n` +
@@ -178,6 +181,9 @@ export class PositionManager {
       this.dailyPnL += pnl;
 
       this.positions = this.positions.filter((p) => p.id !== position.id);
+
+      // ✅ Invalidate wallet cache
+      this.wallet.invalidateCache();
 
       const emoji = pnl > 0 ? "💰" : "📉";
       await this.telegram.sendMessage(
@@ -231,16 +237,33 @@ export class PositionManager {
           position.amount
         );
 
+        // ✅ Validate quote
+        if (!quote || !quote.outAmount || quote.outAmount <= 0) {
+          logger.error(`Invalid quote for position ${position.id}`);
+          continue;
+        }
+
         const currentValue = quote.outAmount / 1e9; // LAMPORTS to SOL
         const pnlPercent =
           ((currentValue - position.investedSOL) / position.investedSOL) * 100;
 
+        // ✅ Stop-Loss with error handling
         if (pnlPercent <= -position.stopLoss) {
-          await this.closePosition(
-            position,
-            `Stop loss (${pnlPercent.toFixed(2)}%)`
-          );
-        } else if (pnlPercent >= position.takeProfit) {
+          try {
+            await this.closePosition(
+              position,
+              `Stop loss (${pnlPercent.toFixed(2)}%)`
+            );
+          } catch (closeError) {
+            logger.error(`CRITICAL: Failed to close position ${position.id}`, closeError);
+            await this.telegram.sendMessage(
+              `🚨 EMERGENCY: Position ${position.token.slice(0, 8)}... could not be closed! Manual intervention required!`
+            );
+            position.failed = true;
+          }
+        }
+        // ✅ Take-Profit
+        else if (pnlPercent >= position.takeProfit) {
           await this.closePosition(
             position,
             `Take profit (${pnlPercent.toFixed(2)}%)`
@@ -248,6 +271,15 @@ export class PositionManager {
         }
       } catch (error) {
         logger.error(`Monitor failed for ${position.id}:`, error);
+        
+        // ✅ Force-close after repeated failures
+        position.monitorFailCount = (position.monitorFailCount || 0) + 1;
+        if (position.monitorFailCount >= 3) {
+          await this.telegram.sendMessage(
+            `🚨 Position ${position.token.slice(0, 8)}... FORCE-CLOSED after 3 monitor failures`
+          );
+          this.positions = this.positions.filter(p => p.id !== position.id);
+        }
       }
     }
   }

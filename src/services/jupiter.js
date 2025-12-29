@@ -222,15 +222,33 @@ export class JupiterService {
         }
       }
 
-      // Wait for confirmation with timeout
-      const confirmation = await Promise.race([
-        this.connection.confirmTransaction(signature, "confirmed"),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Confirmation timeout")), 60000)
-        ),
-      ]);
+      // Wait for confirmation with timeout and enhanced status check
+      let confirmation;
+      try {
+        confirmation = await Promise.race([
+          this.connection.confirmTransaction(signature, "confirmed"),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Confirmation timeout")), 60000)
+          ),
+        ]);
+      } catch (timeoutError) {
+        logger.warn(`Confirmation timeout for ${signature}, checking status...`);
+        
+        // ✅ Manual status check on timeout
+        const statusResponse = await this.connection.getSignatureStatus(signature);
+        
+        if (statusResponse.value?.confirmationStatus === "confirmed" || 
+            statusResponse.value?.confirmationStatus === "finalized") {
+          logger.success(`Transaction ${signature.slice(0, 16)}... was confirmed despite timeout!`);
+          // Continue normal flow
+        } else if (statusResponse.value?.err) {
+          throw new Error(`Transaction failed: ${JSON.stringify(statusResponse.value.err)}`);
+        } else {
+          throw new Error(`Transaction ${signature.slice(0, 16)}... status unclear after timeout!`);
+        }
+      }
 
-      if (confirmation.value?.err) {
+      if (confirmation && confirmation.value?.err) {
         throw new Error(
           `Transaction failed: ${JSON.stringify(confirmation.value.err)}`
         );
