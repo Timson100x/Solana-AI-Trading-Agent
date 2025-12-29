@@ -116,7 +116,6 @@ export class SolScanService {
       logger.error("SolScan unexpected error:", error.message);
       return [];
     }
-    }
   }
 
   /**

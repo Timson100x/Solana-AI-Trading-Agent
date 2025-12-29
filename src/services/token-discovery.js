@@ -212,22 +212,31 @@ export class TokenDiscoveryService {
             },
           });
 
-      if (!response.data) {
-        return [];
-      }
+          if (response.data && Array.isArray(response.data)) {
+            // Filter verified tokens
+            const tokens = response.data
+              .filter((token) => token.tags && token.tags.includes("verified"))
+              .map((token) => ({
+                address: token.address,
+                symbol: token.symbol,
+                name: token.name,
+                decimals: token.decimals,
+                source: "jupiter-verified",
+              }));
 
-      // Return only tokens with high liquidity
-      return response.data
-        .filter((token) => token.tags && token.tags.includes("verified"))
-        .map((token) => ({
-          address: token.address,
-          symbol: token.symbol,
-          name: token.name,
-          decimals: token.decimals,
-          source: "jupiter-verified",
-        }));
+            this.setCache(cacheKey, tokens);
+            logger.success(`✅ Found ${tokens.length} verified Jupiter tokens`);
+            return tokens;
+          }
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      
+      logger.warn(`⚠️ All Jupiter endpoints failed: ${lastError?.message}`);
+      return [];
     } catch (error) {
-      logger.warn("Jupiter fetch failed:", error.message);
+      logger.warn("Jupiter unexpected error:", error.message);
       return [];
     }
   }
