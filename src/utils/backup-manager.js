@@ -56,14 +56,30 @@ export class BackupManager {
     try {
       const env = await fs.readFile('.env', 'utf-8');
 
-      // Remove sensitive values
-      const safe = env.split('\n').map(line => {
-        if (line.includes('_KEY=') || line.includes('_TOKEN=')) {
-          const [key] = line.split('=');
-          return `${key}=***REDACTED***`;
-        }
-        return line;
-      }).join('\n');
+      // Remove sensitive values - comprehensive sanitization
+      const safe = env
+        .replace(/HELIUS_API_KEY=.*/g, 'HELIUS_API_KEY=***REDACTED***')
+        .replace(/WALLET_PRIVATE_KEY=.*/g, 'WALLET_PRIVATE_KEY=***REDACTED***')
+        .replace(/TELEGRAM_BOT_TOKEN=.*/g, 'TELEGRAM_BOT_TOKEN=***REDACTED***')
+        .replace(/TELEGRAM_CHAT_ID=.*/g, 'TELEGRAM_CHAT_ID=***REDACTED***')
+        .replace(/GOOGLE_AI_API_KEY=.*/g, 'GOOGLE_AI_API_KEY=***REDACTED***')
+        .replace(/GEMINI_API_KEY=.*/g, 'GEMINI_API_KEY=***REDACTED***')
+        .replace(/GROQ_API_KEY=.*/g, 'GROQ_API_KEY=***REDACTED***')
+        .replace(/MORALIS_API_KEY=.*/g, 'MORALIS_API_KEY=***REDACTED***')
+        .replace(/BIRDEYE_API_KEY=.*/g, 'BIRDEYE_API_KEY=***REDACTED***')
+        .replace(/EXTERNAL_API_KEY=.*/g, 'EXTERNAL_API_KEY=***REDACTED***')
+        .replace(/NGROK_AUTH_TOKEN=.*/g, 'NGROK_AUTH_TOKEN=***REDACTED***')
+        .replace(/HELIUS_WEBHOOK_SECRET=.*/g, 'HELIUS_WEBHOOK_SECRET=***REDACTED***')
+        .replace(/QUICKNODE_RPC_URL=.*/g, 'QUICKNODE_RPC_URL=***REDACTED***')
+        .replace(/ALCHEMY_RPC_URL=.*/g, 'ALCHEMY_RPC_URL=***REDACTED***')
+        .replace(/QUICKNODE_MEV_RPC=.*/g, 'QUICKNODE_MEV_RPC=***REDACTED***')
+        .replace(/TWITTER_API_KEY=.*/g, 'TWITTER_API_KEY=***REDACTED***')
+        .replace(/TWITTER_API_SECRET=.*/g, 'TWITTER_API_SECRET=***REDACTED***')
+        .replace(/TWITTER_ACCESS_TOKEN=.*/g, 'TWITTER_ACCESS_TOKEN=***REDACTED***')
+        .replace(/TWITTER_ACCESS_SECRET=.*/g, 'TWITTER_ACCESS_SECRET=***REDACTED***')
+        .replace(/TIKTOK_ACCESS_TOKEN=.*/g, 'TIKTOK_ACCESS_TOKEN=***REDACTED***')
+        .replace(/EMAIL_PASSWORD=.*/g, 'EMAIL_PASSWORD=***REDACTED***')
+        .replace(/api-key=[a-zA-Z0-9-]+/g, 'api-key=***REDACTED***');
 
       await fs.writeFile(dest, safe);
       logger.info('📦 Backed up: .env (sanitized)');

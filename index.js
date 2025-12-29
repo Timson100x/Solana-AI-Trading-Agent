@@ -45,6 +45,7 @@ class TradingAgent {
       totalSignals: 0,
       totalTrades: 0,
     };
+    this.profitLockInProgress = false; // ✅ Add lock flag
   }
 
   async initialize() {
@@ -442,8 +443,16 @@ class TradingAgent {
   }
 
   async checkProfitLocking() {
+    // ✅ Prevent parallel execution
+    if (this.profitLockInProgress) {
+      logger.info("Profit locking already in progress, skipping...");
+      return;
+    }
+    
+    this.profitLockInProgress = true;
+    
     try {
-      const positions = this.positionManager.positions;
+      const positions = [...this.positionManager.positions]; // ✅ Copy array
 
       if (positions.length === 0) {
         return;
@@ -467,22 +476,30 @@ class TradingAgent {
       const totalValue = await this.calculateTotalPortfolio();
 
       for (const winner of winners) {
-        const positionValue = winner.amount * winner.currentPrice;
+        // ✅ Check if position still exists
+        const currentPos = this.positionManager.positions.find(p => p.id === winner.id);
+        if (!currentPos) {
+          logger.warn(`Position ${winner.id} no longer exists`);
+          continue;
+        }
+        
+        // ✅ Use currentPos for calculations
+        const positionValue = currentPos.amount * currentPos.currentPrice;
         const pnlPercent =
-          ((winner.currentPrice - winner.entryPrice) / winner.entryPrice) * 100;
+          ((currentPos.currentPrice - currentPos.entryPrice) / currentPos.entryPrice) * 100;
 
         // Only lock if position is >10% of portfolio
         if (positionValue > totalValue * 0.1) {
           logger.success(
-            `🔒 LOCKING PROFIT: ${winner.symbol} +${pnlPercent.toFixed(1)}%`
+            `🔒 LOCKING PROFIT: ${currentPos.symbol} +${pnlPercent.toFixed(1)}%`
           );
 
           // Sell 60%, keep 40%
-          const sellAmount = winner.amount * 0.6;
+          const sellAmount = currentPos.amount * 0.6;
 
           try {
             const quote = await this.jupiter.getQuote(
-              winner.token,
+              currentPos.token,
               "So11111111111111111111111111111111111111112",
               sellAmount
             );
@@ -496,17 +513,17 @@ class TradingAgent {
               if (trade && trade.signature) {
                 const receivedSOL = parseFloat(quote.outAmount / 1e9);
 
-                // Update position
-                winner.amount -= sellAmount;
-                winner.lockedProfit = true;
+                // ✅ Update original position
+                currentPos.amount -= sellAmount;
+                currentPos.lockedProfit = true;
 
                 await this.telegram.sendMessage(
                   `🔒 *PROFIT LOCKED*\n\n` +
-                    `Token: ${winner.symbol}\n` +
+                    `Token: ${currentPos.symbol}\n` +
                     `Profit: +${pnlPercent.toFixed(1)}%\n` +
                     `Sold: 60% (${sellAmount.toFixed(6)})\n` +
                     `Received: ${receivedSOL.toFixed(4)} SOL\n` +
-                    `Remaining: ${winner.amount.toFixed(6)}\n` +
+                    `Remaining: ${currentPos.amount.toFixed(6)}\n` +
                     `Signature: \`${trade.signature.slice(0, 16)}...\``
                 );
 
@@ -517,7 +534,7 @@ class TradingAgent {
             }
           } catch (error) {
             logger.error(
-              `Failed to lock profit for ${winner.symbol}:`,
+              `Failed to lock profit for ${currentPos.symbol}:`,
               error.message
             );
           }
@@ -525,6 +542,8 @@ class TradingAgent {
       }
     } catch (error) {
       logger.error("Profit locking check failed:", error.message);
+    } finally {
+      this.profitLockInProgress = false; // ✅ Always release lock
     }
   }
 
@@ -670,27 +689,37 @@ class TradingAgent {
         `🔥 Executing God Mode trade for ${tokenAddress.slice(0, 8)}...`
       );
 
-      // 1. Run 12-layer God Mode filter
-      const tokenData = { address: tokenAddress };
-      const analysis = await this.godModeAnalyzer.godModeFilter(tokenData);
-
-      if (analysis.verdict !== "GOD_MODE_BUY") {
-        logger.warn(`⚠️ God Mode check failed: ${analysis.score}/12`);
+      // ✅ Balance check first
+      const wsolBalance = await this.wallet.getWrappedSOLBalance();
+      const tradeAmountSol = parseFloat(process.env.GOD_MODE_TRADE_AMOUNT || 0.006);
+      
+      if (wsolBalance < tradeAmountSol) {
+        logger.warn(`Insufficient balance for God Mode trade: ${wsolBalance.toFixed(4)} < ${tradeAmountSol}`);
+        await this.telegram.sendMessage(`⚠️ God Mode trade skipped: Insufficient balance`);
         return;
       }
 
-      // 2. Ensure optimal wallet balance
+      // ✅ Run God Mode filter
+      const tokenData = { address: tokenAddress };
+      const analysis = await this.godModeAnalyzer.godModeFilter(tokenData);
+      
+      const minScore = parseInt(process.env.GOD_MODE_MIN_SCORE || 5);
+      if (analysis.verdict !== "GOD_MODE_BUY" || analysis.score < minScore) {
+        logger.warn(`⚠️ God Mode check failed: ${analysis.score}/${minScore}`);
+        return;
+      }
+
+      // ✅ Ensure optimal wallet balance
       await this.walletOptimizer.ensureOptimalBalance();
 
-      // 3. Execute via Jito Bundle (atomic trade)
-      const tradeAmount =
-        parseFloat(process.env.GOD_MODE_TRADE_AMOUNT || 0.006) * 1e9;
+      // ✅ Execute trade
+      const tradeAmount = Math.floor(tradeAmountSol * 1e9);
 
       let result;
       if (process.env.USE_JITO_BUNDLES === "true") {
         result = await this.jitoBundle.buyAtomic(
           tokenAddress,
-          tradeAmount / 1e9,
+          tradeAmountSol,
           this.jupiter
         );
       } else {
@@ -720,12 +749,12 @@ class TradingAgent {
             `Token: \`${tokenAddress.slice(0, 16)}...\`\n` +
             `God Score: ${analysis.score}/12\n` +
             `Confidence: ${analysis.confidence.toFixed(0)}%\n` +
-            `Amount: ${(tradeAmount / 1e9).toFixed(4)} SOL\n` +
+            `Amount: ${tradeAmountSol.toFixed(4)} SOL\n` +
             `Signature: \`${result.signature.slice(0, 16)}...\`\n\n` +
             `💎 Target: 95% Win Rate!`
         );
 
-        // Add to position monitor
+        // ✅ Add to position monitor
         await this.positionManager.openPosition({
           token: tokenAddress,
           amount: tradeAmount,
@@ -737,6 +766,7 @@ class TradingAgent {
       }
     } catch (error) {
       logger.error("God Mode trade failed:", error.message);
+      await this.telegram.sendMessage(`🚨 God Mode Error: ${error.message}`);
     }
   }
 

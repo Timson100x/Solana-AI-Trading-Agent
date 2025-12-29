@@ -177,6 +177,10 @@ export class WalletService {
         return this.computeUnitPrice;
       }
 
+      // ✅ Configurable limits
+      const maxFee = parseInt(process.env.MAX_PRIORITY_FEE || 1000000); // 0.001 SOL default
+      const minFee = parseInt(process.env.MIN_PRIORITY_FEE || 10000);   // 0.00001 SOL
+
       // Get recent prioritization fees
       const recentFees = await this.connection.getRecentPrioritizationFees();
 
@@ -187,16 +191,20 @@ export class WalletService {
       // Calculate median fee
       const fees = recentFees
         .map((f) => f.prioritizationFee)
+        .filter((f) => f > 0)
         .sort((a, b) => a - b);
+      
+      if (fees.length === 0) {
+        return this.computeUnitPrice;
+      }
+
       const median = fees[Math.floor(fees.length / 2)];
 
       // Add 20% buffer for competitive inclusion
       const optimizedFee = Math.floor(median * 1.2);
 
-      // Cap at reasonable maximum (0.01 SOL)
-      const maxFee = 10000000;
-
-      return Math.min(optimizedFee, maxFee);
+      // ✅ Clamp between min and max
+      return Math.max(minFee, Math.min(optimizedFee, maxFee));
     } catch (error) {
       logger.error("Priority fee calculation failed:", error);
       return this.computeUnitPrice;

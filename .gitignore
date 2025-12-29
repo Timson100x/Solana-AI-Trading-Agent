@@ -1,7 +1,54 @@
+# Node
 node_modules/
-.env
 *.log
-.DS_Store
-dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Secrets & Keys
 *.key
+*.pem
 wallet.json
+**/*private*
+**/*secret*
+
+# Backups (contains sensitive data)
+backups/**/*.backup
+backups/**/.env*
+backups/**/wallet*
+
+# Config (may contain sensitive data)
+config/wallet-performance.json
+config/smart-wallets.json
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Build
+dist/
+build/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Testing
+coverage/
+.nyc_output/
+
+# Temporary
+tmp/
+temp/
+*.tmp
