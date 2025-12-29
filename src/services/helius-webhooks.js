@@ -67,10 +67,30 @@ export class HeliusWebhooks {
       logger.success("🎯 Transaction from tracked wallet!");
       logger.info(`   Signature: ${tx.signature?.slice(0, 12)}...`);
 
-      // Analyze with agent
-      await this.agent.checkWallet({
-        address: tx.accountData[0].account,
-      });
+      // Find which wallet made the transaction
+      const matchedWallet = wallets.find((w) =>
+        tx.accountData?.some((acc) => acc.account === w.address)
+      );
+
+      if (matchedWallet && this.agent.telegram) {
+        // Send Telegram alert about the transaction
+        const message =
+          `🔔 *Webhook Alert*\n\n` +
+          `💼 Wallet: \`${
+            matchedWallet.name || matchedWallet.address.slice(0, 8)
+          }...\`\n` +
+          `📝 Signature: \`${tx.signature?.slice(0, 16)}...\`\n` +
+          `🔄 Type: ${tx.type || "Unknown"}\n\n` +
+          `[View on Solscan](https://solscan.io/tx/${tx.signature})`;
+
+        try {
+          await this.agent.telegram.sendMessage(message, {
+            parse_mode: "Markdown",
+          });
+        } catch (telegramError) {
+          logger.warn("Telegram notification failed:", telegramError.message);
+        }
+      }
 
       return true;
     } catch (error) {

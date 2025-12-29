@@ -1,1 +1,42 @@
-[]
+[
+  {
+    "address": "5Q544fKrFoe6tsEbD7S8EmxGTJYAKtTVhAW5Q5pge4j1",
+    "name": "Raydium Authority",
+    "type": "dex",
+    "winRate": 85,
+    "addedAt": "2025-12-29T08:00:00.000Z",
+    "source": "manual"
+  },
+  {
+    "address": "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
+    "name": "Jupiter Aggregator",
+    "type": "dex",
+    "winRate": 90,
+    "addedAt": "2025-12-29T08:00:00.000Z",
+    "source": "manual"
+  },
+  {
+    "address": "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8",
+    "name": "Raydium AMM",
+    "type": "amm",
+    "winRate": 88,
+    "addedAt": "2025-12-29T08:00:00.000Z",
+    "source": "manual"
+  },
+  {
+    "address": "whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc",
+    "name": "Orca Whirlpool",
+    "type": "dex",
+    "winRate": 87,
+    "addedAt": "2025-12-29T08:00:00.000Z",
+    "source": "manual"
+  },
+  {
+    "address": "So11111111111111111111111111111111111111112",
+    "name": "Wrapped SOL",
+    "type": "token",
+    "winRate": 95,
+    "addedAt": "2025-12-29T08:00:00.000Z",
+    "source": "manual"
+  }
+]
