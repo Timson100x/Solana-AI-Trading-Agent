@@ -10,9 +10,29 @@ const logger = new Logger("PumpFun");
 
 export class PumpFunService {
   constructor() {
-    this.apiUrl = "https://frontend-api.pump.fun";
+    this.endpoints = [
+      "https://frontend-api.pump.fun",
+      "https://api.pump.fun",
+      "https://pumpportal.fun/api",
+    ];
+    this.currentEndpointIndex = 0;
+    this.apiUrl = this.endpoints[0];
+    this.cache = new Map();
+    this.cacheTTL = 3 * 60 * 1000; // 3 min
 
     logger.success("✅ Pump.fun service initialized");
+  }
+
+  getFromCache(key) {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+      return cached.data;
+    }
+    return null;
+  }
+
+  setCache(key, data) {
+    this.cache.set(key, { data, timestamp: Date.now() });
   }
 
   /**
@@ -27,18 +47,28 @@ export class PumpFunService {
         order = "DESC",
       } = options;
 
+      // Check cache
+      const cacheKey = `trending_${sort}_${limit}`;
+      const cached = this.getFromCache(cacheKey);
+      if (cached) return cached;
+
       logger.info("🔍 Fetching trending coins from Pump.fun...");
 
-      const response = await axios.get(`${this.apiUrl}/coins`, {
-        params: {
-          offset: 0,
-          limit,
-          sort,
-          order,
-          includeNsfw,
-        },
-        timeout: 10000,
-      });
+      // Try all endpoints
+      let lastError;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        for (let i = 0; i < this.endpoints.length; i++) {
+          try {
+            const endpoint = this.endpoints[(this.currentEndpointIndex + i) % this.endpoints.length];
+            
+            const response = await axios.get(`${endpoint}/coins`, {
+              params: { offset: 0, limit, sort, order, includeNsfw },
+              timeout: 15000,
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                "Accept": "application/json",
+              },
+            });
 
       if (!response.data) {
         logger.warn("No coins found on Pump.fun");
@@ -64,11 +94,32 @@ export class PumpFunService {
         source: "pumpfun",
       }));
 
-      logger.success(`✅ Found ${coins.length} coins on Pump.fun`);
-
-      return coins;
+            // Success
+            if (i > 0) {
+              this.currentEndpointIndex = (this.currentEndpointIndex + i) % this.endpoints.length;
+            }
+            
+            this.setCache(cacheKey, coins);
+            logger.success(`✅ Found ${coins.length} coins on Pump.fun`);
+            return coins;
+          } catch (error) {
+            lastError = error;
+            if (error.response?.status === 530 || error.response?.status >= 500) {
+              logger.warn(`⚠️ Pump.fun endpoint ${i + 1} server error - trying next...`);
+            }
+          }
+        }
+        
+        // Wait before retry
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+        }
+      }
+      
+      logger.error(`❌ All Pump.fun endpoints failed: ${lastError?.message}`);
+      return [];
     } catch (error) {
-      logger.error("Pump.fun fetch failed:", error.message);
+      logger.error("Pump.fun unexpected error:", error.message);
       return [];
     }
   }

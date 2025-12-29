@@ -18,11 +18,62 @@ export class TokenDiscoveryService {
     this.bubblemaps = bubblemaps;
     this.coingecko = coingecko;
     this.solscan = solscan;
+    
+    // Rate limiting
+    this.lastBirdeyeRequest = 0;
+    this.birdeyeMinDelay = 2000; // 2s between requests
+    this.birdeyeRequestCount = 0;
+    this.birdeyeResetTime = Date.now() + 60000; // Reset every minute
+    
+    // Caching
+    this.cache = new Map();
+    this.cacheTTL = 5 * 60 * 1000; // 5 min
 
     logger.success("✅ Token Discovery initialized");
   }
 
+  getFromCache(key) {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+      return cached.data;
+    }
+    return null;
+  }
+
+  setCache(key, data) {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  async rateLimitBirdeye() {
+    // Reset counter every minute
+    if (Date.now() > this.birdeyeResetTime) {
+      this.birdeyeRequestCount = 0;
+      this.birdeyeResetTime = Date.now() + 60000;
+    }
+    
+    // Max 30 requests per minute
+    if (this.birdeyeRequestCount >= 30) {
+      const waitTime = this.birdeyeResetTime - Date.now();
+      logger.warn(`⚠️ Birdeye rate limit - waiting ${Math.ceil(waitTime/1000)}s`);
+      await new Promise(r => setTimeout(r, waitTime));
+      this.birdeyeRequestCount = 0;
+      this.birdeyeResetTime = Date.now() + 60000;
+    }
+    
+    // Delay between requests
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastBirdeyeRequest;
+    if (timeSinceLastRequest < this.birdeyeMinDelay) {
+      await new Promise(r => setTimeout(r, this.birdeyeMinDelay - timeSinceLastRequest));
+    }
+    
+    this.lastBirdeyeRequest = Date.now();
+    this.birdeyeRequestCount++;
+  }
+
   async birdeyeRequest(path, params = {}) {
+    await this.rateLimitBirdeye();
+    
     try {
       const response = await axios.get(`${this.sources.birdeye}${path}`, {
         params,
@@ -31,7 +82,7 @@ export class TokenDiscoveryService {
           accept: "application/json",
           "x-chain": "solana",
         },
-        timeout: 10000,
+        timeout: 15000, // Increased timeout
       });
 
       if (!response.data) {
@@ -137,11 +188,29 @@ export class TokenDiscoveryService {
    */
   async getJupiterTokens() {
     try {
+      const cacheKey = 'jupiter_tokens';
+      const cached = this.getFromCache(cacheKey);
+      if (cached) return cached;
+      
       logger.info("🪐 Fetching from Jupiter...");
 
-      const response = await axios.get(`${this.sources.jupiter}/strict`, {
-        timeout: 10000,
-      });
+      // Try multiple CDN endpoints
+      const endpoints = [
+        `${this.sources.jupiter}/strict`,
+        `${this.sources.jupiter}`,
+        "https://token.jup.ag/strict",
+        "https://tokens.jup.ag/tokens?tags=verified",
+      ];
+      
+      let lastError;
+      for (const endpoint of endpoints) {
+        try {
+          const response = await axios.get(endpoint, {
+            timeout: 15000,
+            headers: {
+              'Accept': 'application/json',
+            },
+          });
 
       if (!response.data) {
         return [];

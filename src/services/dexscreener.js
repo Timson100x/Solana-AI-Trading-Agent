@@ -12,8 +12,33 @@ export class DexScreenerService {
   constructor() {
     this.baseUrl = "https://api.dexscreener.com/latest";
     this.solanaChainId = "solana";
+    this.cache = new Map();
+    this.cacheTTL = 2 * 60 * 1000; // 2 min (DEXScreener updates fast)
+    this.lastRequest = 0;
+    this.minDelay = 1000; // 1s between requests
 
     logger.success("✅ DEXScreener service initialized");
+  }
+
+  getFromCache(key) {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+      return cached.data;
+    }
+    return null;
+  }
+
+  setCache(key, data) {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  async rateLimit() {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequest;
+    if (timeSinceLastRequest < this.minDelay) {
+      await new Promise(r => setTimeout(r, this.minDelay - timeSinceLastRequest));
+    }
+    this.lastRequest = Date.now();
   }
 
   /**
@@ -29,10 +54,18 @@ export class DexScreenerService {
         limit = 10,
       } = options;
 
+      const cacheKey = `trending_${limit}_${minLiquidity}`;
+      const cached = this.getFromCache(cacheKey);
+      if (cached) return cached;
+
+      await this.rateLimit();
       logger.info("🔍 Fetching trending Solana tokens...");
 
       // Get boosted tokens (trending)
-      const response = await axios.get(`${this.baseUrl}/dex/tokens/boosted`);
+      const response = await axios.get(`${this.baseUrl}/dex/tokens/boosted`, {
+        timeout: 15000,
+        headers: { 'Accept': 'application/json' },
+      });
 
       if (!response.data || !response.data.tokens) {
         logger.warn("No trending tokens found");
@@ -71,6 +104,7 @@ export class DexScreenerService {
         .sort((a, b) => b.priceChange24h - a.priceChange24h)
         .slice(0, limit);
 
+      this.setCache(cacheKey, sorted);
       logger.success(`✅ Found ${sorted.length} trending tokens`);
 
       return sorted;

@@ -9,11 +9,19 @@ const logger = new Logger("SolScan");
  */
 export class SolScanService {
   constructor() {
-    this.baseUrl = "https://public-api.solscan.io";
+    // Try multiple API versions
+    this.endpoints = [
+      "https://public-api.solscan.io",
+      "https://api.solscan.io",
+      "https://pro-api.solscan.io", // Requires API key but try anyway
+    ];
+    this.currentEndpointIndex = 0;
+    this.baseUrl = this.endpoints[0];
     this.cache = new Map();
     this.cacheTTL = 10 * 60 * 1000; // 10 minutes
     this.lastRequest = 0;
     this.minDelay = 1000; // 1s between requests
+    this.apiKey = process.env.SOLSCAN_API_KEY || null;
   }
 
   async rateLimit() {
@@ -66,34 +74,48 @@ export class SolScanService {
         }
       }
 
-      if (response.data?.data) {
-        const tokens = response.data.data
-          .map((token) => ({
-            address: token.address,
-            symbol: token.symbol,
-            name: token.name,
-            priceUsd: parseFloat(token.price || 0),
-            volume24h: parseFloat(token.volume24h || 0),
-            priceChange24h: parseFloat(token.priceChange24h || 0),
-            marketCap: parseFloat(token.marketCap || 0),
-            holders: token.holder || 0,
-            source: "solscan",
-          }))
-          .filter((t) => t.volume24h > 0); // Filter out low activity
+            // Success
+            if (response.data?.data) {
+              const tokens = response.data.data
+                .map((token) => ({
+                  address: token.address,
+                  symbol: token.symbol,
+                  name: token.name,
+                  priceUsd: parseFloat(token.price || 0),
+                  volume24h: parseFloat(token.volume24h || 0),
+                  priceChange24h: parseFloat(token.priceChange24h || 0),
+                  marketCap: parseFloat(token.marketCap || 0),
+                  holders: token.holder || 0,
+                  source: "solscan",
+                }))
+                .filter((t) => t.volume24h > 0);
 
-        this.setCache(cacheKey, tokens);
-        logger.success(`✅ Found ${tokens.length} trending tokens`);
-        return tokens;
+              this.setCache(cacheKey, tokens);
+              logger.success(`✅ Found ${tokens.length} trending tokens (${endpoint}${path})`);
+              return tokens;
+            }
+          } catch (error) {
+            lastError = error;
+            const status = error.response?.status;
+            
+            // Only log non-404 errors
+            if (status !== 404) {
+              logger.warn(`⚠️ SolScan ${endpoint}${path}: ${status || error.message}`);
+            }
+          }
+        }
       }
 
+      logger.warn("⚠️ SolScan: All endpoints unavailable (API may be deprecated)");
       return [];
     } catch (error) {
       if (error.response?.status === 429) {
         logger.warn("⚠️ SolScan rate limit");
         return [];
       }
-      logger.error("SolScan trending failed:", error.message);
+      logger.error("SolScan unexpected error:", error.message);
       return [];
+    }
     }
   }
 

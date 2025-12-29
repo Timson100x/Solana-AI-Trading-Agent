@@ -10,10 +10,31 @@ const logger = new Logger("GMGN");
 
 export class GmgnService {
   constructor() {
-    this.baseUrl = "https://gmgn.ai/defi/quotation/v1";
+    // Multiple endpoints for failover
+    this.endpoints = [
+      "https://gmgn.ai/defi/quotation/v1",
+      "https://api.gmgn.ai/defi/quotation/v1",
+      "https://gmgn.cc/defi/quotation/v1",
+    ];
+    this.currentEndpointIndex = 0;
+    this.baseUrl = this.endpoints[0];
     this.solanaChain = "sol";
+    this.cache = new Map();
+    this.cacheTTL = 5 * 60 * 1000; // 5 min
 
     logger.success("✅ GMGN.ai service initialized");
+  }
+
+  getFromCache(key) {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.cacheTTL) {
+      return cached.data;
+    }
+    return null;
+  }
+
+  setCache(key, data) {
+    this.cache.set(key, { data, timestamp: Date.now() });
   }
 
   /**
@@ -28,25 +49,37 @@ export class GmgnService {
         orderBy = "volume_24h_usd", // volume_24h_usd, liquidity_usd, smart_money_amount
       } = options;
 
+      // Check cache first
+      const cacheKey = `trending_${orderBy}_${limit}`;
+      const cached = this.getFromCache(cacheKey);
+      if (cached) return cached;
+
       logger.info("🔍 Fetching smart money tokens from GMGN...");
 
-      // Get token list with smart money activity
-      const response = await axios.get(
-        `${this.baseUrl}/tokens/top_tokens/${this.solanaChain}`,
-        {
-          params: {
-            limit,
-            orderby: orderBy,
-            direction: "desc",
-          },
-          timeout: 10000,
-          headers: {
-            "User-Agent":
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            Accept: "application/json",
-          },
-        }
-      );
+      // Try all endpoints with enhanced headers
+      let lastError;
+      for (let i = 0; i < this.endpoints.length; i++) {
+        try {
+          const endpoint = this.endpoints[(this.currentEndpointIndex + i) % this.endpoints.length];
+          
+          const response = await axios.get(
+            `${endpoint}/tokens/top_tokens/${this.solanaChain}`,
+            {
+              params: { limit, orderby: orderBy, direction: "desc" },
+              timeout: 15000,
+              headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Referer": "https://gmgn.ai/",
+                "Origin": "https://gmgn.ai",
+                "Sec-Fetch-Dest": "empty",
+                "Sec-Fetch-Mode": "cors",
+                "Sec-Fetch-Site": "same-origin",
+              },
+            }
+          );
 
       if (!response.data || !response.data.data || !response.data.data.rank) {
         logger.warn("No tokens found on GMGN");
@@ -81,10 +114,34 @@ export class GmgnService {
           source: "gmgn",
         }));
 
-      logger.success(`✅ Found ${filtered.length} tokens on GMGN`);
-      return filtered;
+          // Success - cache and update endpoint
+          if (i > 0) {
+            this.currentEndpointIndex = (this.currentEndpointIndex + i) % this.endpoints.length;
+            logger.info(`🔄 GMGN switched to endpoint ${this.currentEndpointIndex + 1}`);
+          }
+          
+          this.setCache(cacheKey, filtered);
+          logger.success(`✅ Found ${filtered.length} tokens on GMGN`);
+          return filtered;
+        } catch (error) {
+          lastError = error;
+          const status = error.response?.status;
+          
+          if (status === 403) {
+            logger.warn(`⚠️ GMGN endpoint ${i + 1} blocked (403) - trying next...`);
+          } else if (status === 429) {
+            logger.warn(`⚠️ GMGN endpoint ${i + 1} rate limited - trying next...`);
+            await new Promise(r => setTimeout(r, 2000)); // Wait 2s
+          } else {
+            logger.warn(`⚠️ GMGN endpoint ${i + 1} failed: ${error.message}`);
+          }
+        }
+      }
+      
+      logger.error(`❌ All GMGN endpoints failed. Last error: ${lastError?.message}`);
+      return [];
     } catch (error) {
-      logger.error("GMGN fetch failed:", error.message);
+      logger.error("GMGN unexpected error:", error.message);
       return [];
     }
   }
