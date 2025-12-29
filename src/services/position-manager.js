@@ -275,10 +275,19 @@ export class PositionManager {
         // ✅ Force-close after repeated failures
         position.monitorFailCount = (position.monitorFailCount || 0) + 1;
         if (position.monitorFailCount >= 3) {
-          await this.telegram.sendMessage(
-            `🚨 Position ${position.token.slice(0, 8)}... FORCE-CLOSED after 3 monitor failures`
-          );
-          this.positions = this.positions.filter(p => p.id !== position.id);
+          logger.warn(`Attempting to force-close position ${position.id} after 3 failures`);
+          
+          try {
+            // Try to close position properly
+            await this.closePosition(position, 'Force-closed after 3 monitor failures');
+          } catch (closeError) {
+            // If close fails, remove from positions array manually
+            logger.error(`Failed to close position ${position.id}, removing from tracking`, closeError);
+            await this.telegram.sendMessage(
+              `🚨 Position ${position.token.slice(0, 8)}... FORCE-REMOVED after close failure!`
+            );
+            this.positions = this.positions.filter(p => p.id !== position.id);
+          }
         }
       }
     }
