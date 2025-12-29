@@ -86,7 +86,21 @@ PUBLIC_URL=https://your-domain.com
 PUBLIC_URL=http://your-ip-address:3000
 ```
 
-### 3. Start the Bot
+### 3. Test Your Configuration (Optional)
+
+Before starting the bot, verify your webhook setup:
+
+```bash
+npm run test:webhooks
+```
+
+This will:
+- ✅ Check environment variables
+- ✅ Validate URL format
+- ✅ Test API connection (if configured)
+- ✅ Verify endpoint setup
+
+### 4. Start the Bot
 
 ```bash
 npm start

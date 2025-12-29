@@ -48,6 +48,36 @@ if (process.env.HELIUS_API_KEY && process.env.HELIUS_API_KEY !== '') {
   fail('HELIUS_API_KEY is missing');
 }
 
+// Test Webhook Configuration (if enabled)
+if (process.env.HELIUS_WEBHOOKS === 'true') {
+  console.log('\n🔔 Testing Webhook Configuration...\n');
+  
+  if (process.env.PUBLIC_URL && process.env.PUBLIC_URL !== '') {
+    pass('PUBLIC_URL is set for webhooks');
+    
+    // Validate URL format
+    try {
+      const url = new URL(process.env.PUBLIC_URL);
+      if (url.protocol === 'https:' || url.protocol === 'http:') {
+        pass(`PUBLIC_URL format is valid: ${url.protocol}//${url.host}`);
+      } else {
+        fail('PUBLIC_URL must use http:// or https://');
+      }
+    } catch {
+      fail('PUBLIC_URL is not a valid URL');
+    }
+  } else {
+    fail('PUBLIC_URL is required when HELIUS_WEBHOOKS=true');
+  }
+  
+  // Check webhook types
+  const webhookTypes = process.env.HELIUS_WEBHOOK_TYPES || 'SWAP,TRANSFER';
+  pass(`Webhook types configured: ${webhookTypes}`);
+} else {
+  warn('Webhooks disabled - using polling mode (slower)');
+  warn('💡 Enable with: HELIUS_WEBHOOKS=true + PUBLIC_URL in .env');
+}
+
 if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_BOT_TOKEN !== '') {
   pass('TELEGRAM_BOT_TOKEN is set');
 } else {
