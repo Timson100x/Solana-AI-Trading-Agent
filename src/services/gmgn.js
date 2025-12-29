@@ -20,9 +20,23 @@ export class GmgnService {
     this.baseUrl = this.endpoints[0];
     this.solanaChain = "sol";
     this.cache = new Map();
-    this.cacheTTL = 5 * 60 * 1000; // 5 min
+    this.cacheTTL = 10 * 60 * 1000; // 10 minutes (longer due to rate limits)
 
-    logger.success("✅ GMGN.ai service initialized");
+    logger.success("✅ GMGN.ai service initialized (rate-limited: 2 req/s)");
+  }
+
+  /**
+   * Rate limiting (Official: 2 req/s max)
+   */
+  async rateLimit() {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequest;
+    if (timeSinceLastRequest < this.minDelay) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.minDelay - timeSinceLastRequest)
+      );
+    }
+    this.lastRequest = Date.now();
   }
 
   getFromCache(key) {
@@ -52,8 +66,13 @@ export class GmgnService {
       // Check cache first
       const cacheKey = `trending_${orderBy}_${limit}`;
       const cached = this.getFromCache(cacheKey);
-      if (cached) return cached;
+      if (cached) {
+        logger.info("✅ Using cached GMGN data");
+        return cached;
+      }
 
+      // Rate limiting
+      await this.rateLimit();
       logger.info("🔍 Fetching smart money tokens from GMGN...");
 
       // Try all endpoints with enhanced headers
