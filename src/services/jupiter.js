@@ -129,7 +129,8 @@ export class JupiterService {
 
         if (attempt < maxRetries) {
           // Try fallback URL
-          const fallbackUrl = this.endpoints.fallbacks[attempt % this.endpoints.fallbacks.length];
+          const fallbackUrl =
+            this.endpoints.fallbacks[attempt % this.endpoints.fallbacks.length];
           logger.warn(`⚠️ Retrying with fallback: ${fallbackUrl}`);
           this.endpoints.quote = `${fallbackUrl}/quote`;
           this.endpoints.swap = `${fallbackUrl}/swap`;
@@ -174,7 +175,7 @@ export class JupiterService {
             priorityLevel: options.priorityLevel || "high",
           },
         },
-        { 
+        {
           headers: this.getHeaders(),
           timeout: 15000,
         }
