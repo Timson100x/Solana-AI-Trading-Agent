@@ -9,18 +9,21 @@
 ### 4 neue Kerndateien:
 
 1. **[src/core/nl-command-handler.js](src/core/nl-command-handler.js)** (458 Zeilen)
+
    - Natural Language Parser
    - Bot Template System
    - AI-gestützte Parameter-Extraktion
    - Code Generator
 
 2. **[src/services/auto-deploy.js](src/services/auto-deploy.js)** (189 Zeilen)
+
    - Git Commit & Push Automation
    - SSH VPS Deployment
    - PM2 Integration
    - Health Checks & Rollback
 
 3. **[src/services/nl-telegram-bridge.js](src/services/nl-telegram-bridge.js)** (156 Zeilen)
+
    - Telegram Command Integration
    - `/buildbot`, `/deploy`, `/listbots`, `/rollback`
    - User Interface für NL-System
@@ -161,6 +164,7 @@ class GridTradingBot {
 ```
 
 **Parameter:**
+
 - `token`: Token Mint/Symbol
 - `minPrice`: Unterste Grenze (z.B. 50)
 - `maxPrice`: Oberste Grenze (z.B. 150)
@@ -168,6 +172,7 @@ class GridTradingBot {
 - `orderSize`: SOL per Order (z.B. 0.01)
 
 **Beispiel Command:**
+
 ```
 /buildbot baue grid bot für SOL von 80-120 mit 5 levels order size 0.02
 ```
@@ -184,11 +189,13 @@ class DCABot {
 ```
 
 **Parameter:**
+
 - `token`: Token Symbol
 - `amount`: SOL per buy (z.B. 0.01)
 - `interval`: "4h", "daily", "weekly"
 
 **Beispiel Command:**
+
 ```
 /buildbot dca bot für BONK jeden tag 0.05 SOL
 ```
@@ -384,9 +391,9 @@ Bot:  🧠 Verstehe Anfrage...
 }
 
 Bot:  ✅ Bot generiert!
-      
+
       **Grid Trading Bot mit automatischen Buy/Sell Orders**
-      
+
       Datei: `grid-trading-bot-1735466234567.js`
       Parameter:
       {
@@ -395,14 +402,14 @@ Bot:  ✅ Bot generiert!
         "maxPrice": 120,
         "gridLevels": 5
       }
-      
+
       Deploy mit: `/deploy`
 
 [User prüft & approved]
 User: /deploy
 
 Bot:  🚀 Deploye Bot...
-      
+
       ⏳ Git Commit...
       ⏳ GitHub Push...
       ⏳ VPS Deploy...
@@ -413,20 +420,20 @@ Bot:  🚀 Deploye Bot...
 [pm2 restart]
 
 Bot:  ✅ **Deployment erfolgreich!**
-      
+
       Datei: `grid-trading-bot-1735466234567.js`
       GitHub: ✅ Pushed
       VPS: ✅ Online
-      
+
       Bot läuft jetzt auf dem VPS! 🔥
 
 [2 Minuten später - GitHub Actions Done]
 Bot:  🚀 Auto-Deploy Successful!
-      
+
       Repository: Timson100x/Solana-AI-Trading-Agent
       Commit: 🤖 Auto-generated: Grid Trading Bot
       Author: github-actions[bot]
-      
+
       Bot restarted on VPS! 🔥
 ```
 
@@ -447,6 +454,7 @@ Bot:  🚀 Auto-Deploy Successful!
 ```
 
 **Lösung:**
+
 - Keywords verwenden: "grid", "dca", "sniper"
 - Klarer formulieren: "baue grid bot für SOL"
 
@@ -460,6 +468,7 @@ Bot:  🚀 Auto-Deploy Successful!
 ```
 
 **Lösung:**
+
 ```bash
 # Check Git Status
 git status
@@ -480,6 +489,7 @@ https://github.com/Timson100x/Solana-AI-Trading-Agent/actions
 ```
 
 **Lösung:**
+
 ```bash
 # SSH to VPS
 ssh root@your-contabo-ip
@@ -504,6 +514,7 @@ pm2 restart solana-bot
 ```
 
 **Lösung:**
+
 - Explizitere Command:
   ```
   /buildbot baue grid bot für SOL mit min 80 max 120 levels 5
@@ -575,6 +586,6 @@ npm start
 **Version:** v1.0.0  
 **Status:** ✅ Production Ready (Phase 1)  
 **Integration:** ✅ Komplett in index.js integriert  
-**Tests:** ✅ Syntax validated  
+**Tests:** ✅ Syntax validated
 
 **LET'S BUILD BOTS! 🚀🤖🔥**
