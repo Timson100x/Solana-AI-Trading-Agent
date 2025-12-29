@@ -1,266 +1,117 @@
-# 🚀 SOLANA AI TRADING AGENT
+# 🤖 Solana AI Trading Agent
 
-## ⚡ ONE-COMMAND SETUP | ElizaOS V2 | Professional Dashboard
+Professional AI-powered trading bot for Solana memecoins with ElizaOS V2 integration.
 
-**Advanced Solana trading bot with AI analysis, Jupiter DEX, Web Dashboard, and Multi-Platform integration.**
+## ✨ Features
 
----
+- **🧠 AI-Powered Analysis** - Groq & Gemini for smart trading decisions
+- **⚡ Jupiter V6 Integration** - Fast swaps with dynamic priority fees
+- **📊 Real-time Monitoring** - Helius webhooks for instant alerts
+- **📱 Telegram Control** - Full bot control via Telegram
+- **🎯 Auto Trading** - Configurable confidence thresholds
+- **🛡️ Risk Management** - Stop-loss & take-profit automation
 
-## 🎯 INSTANT SETUP (Copy & Paste!)
+## 🚀 Quick Start
 
-### In Codespaces - Just ONE Command:
+### Option 1: VPS Deployment (Recommended)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Timson100x/Solana-AI-Trading-Agent/main/scripts/codespace-setup.sh | bash
+# SSH to your VPS
+ssh user@your-vps-ip
+
+# Run quick deploy script
+curl -fsSL https://raw.githubusercontent.com/Timson100x/Solana-AI-Trading-Agent/main/vps-quick-deploy.sh | bash
+
+# Configure .env
+cd ~/Solana-AI-Trading-Agent
+nano .env
+
+# Start with PM2
+pm2 start index.js --name trading-bot
+pm2 logs trading-bot
 ```
 
-**That's it! Auto-installs everything in 2 minutes! ⚡**
+### Option 2: Local Development
 
-Then fill .env and run:
 ```bash
+git clone https://github.com/Timson100x/Solana-AI-Trading-Agent.git
+cd Solana-AI-Trading-Agent
+npm install
+cp .env.example .env
+# Edit .env with your keys
 npm start
 ```
 
-**DONE! Bot running! 🔥**
+## ⚙️ Configuration
 
----
+Edit `.env` file:
 
-## 📋 EVEN FASTER: Use GitHub Copilot
-
-Open Codespace → Copilot Chat → Paste:
-
-```
-@workspace Setup complete Solana trading bot: install all dependencies, create .env, make scripts executable, validate all configs, create directories. Show progress with emojis. No confirmations needed.
-```
-
-Copilot does everything! ✨
-
----
-
-## ⚡ SUPER QUICK START
-
-### 1. Open Codespace (30 sec)
-```
-https://github.com/Timson100x/Solana-AI-Trading-Agent
-→ Code → Codespaces → Create
-```
-
-### 2. Run ONE Command (2 min)
-```bash
-curl -fsSL https://raw.githubusercontent.com/Timson100x/Solana-AI-Trading-Agent/main/scripts/codespace-setup.sh | bash
-```
-
-### 3. Fill .env (2 min)
 ```env
+# Required
 RPC_ENDPOINT=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
-WALLET_PRIVATE_KEY=your_base58_key
-TELEGRAM_BOT_TOKEN=your_token
+WALLET_PRIVATE_KEY=your_base58_private_key
+TELEGRAM_BOT_TOKEN=your_bot_token
 TELEGRAM_CHAT_ID=your_chat_id
-GOOGLE_AI_API_KEY=your_gemini_key
+
+# AI Providers
+GROQ_API_KEY=your_groq_key
+GEMINI_API_KEY=your_gemini_key
+
+# Trading Settings
+TRADING_ENABLED=true
+AUTO_TRADING_ENABLED=true
+MIN_CONFIDENCE=70
+MAX_TRADE_AMOUNT=0.02
+SLIPPAGE_BPS=150
+STOP_LOSS_PERCENTAGE=15
+TAKE_PROFIT_PERCENTAGE=30
 ```
 
-### 4. Start Bot (instant)
-```bash
-npm start
+## 📱 Telegram Commands
+
+| Command              | Description                |
+| -------------------- | -------------------------- |
+| `/status`            | Show bot status & balance  |
+| `/alerts`            | Toggle alert notifications |
+| `/buy <token> <sol>` | Manual buy                 |
+| `/sell <token>`      | Manual sell                |
+| `/positions`         | Show open positions        |
+| `/help`              | Show all commands          |
+
+## 📁 Project Structure
+
+```
+├── index.js              # Main entry point
+├── src/
+│   ├── services/         # API integrations
+│   │   ├── jupiter.js    # Jupiter swap service
+│   │   ├── telegram.js   # Telegram bot
+│   │   └── wallet.js     # Wallet management
+│   ├── trading/          # Trading logic
+│   │   ├── auto-trader.js
+│   │   └── risk-manager.js
+│   ├── analyzers/        # AI analysis
+│   └── utils/            # Utilities
+├── config/               # Configuration files
+├── docs/                 # Documentation
+└── scripts/              # Utility scripts
 ```
 
-### 5. Trade! ($$$ 💰)
-```
-Dashboard: http://localhost:3000
-Telegram: /start
-```
-
-**TOTAL TIME: 5 MINUTES! ⚡**
-
----
-
-## 🔥 FEATURES
-
-### Core Trading
-- ✅ AI-Powered Analysis (Google Gemini)
-- ✅ Jupiter DEX Integration (Best prices)
-- ✅ Multi-Source Data (Rugcheck, Birdeye, DexScreener)
-- ✅ Automated Trading (24/7 operation)
-- ✅ Risk Management (Stop-loss, take-profit)
-
-### ElizaOS V2 Performance
-- ⚡ 30-50% Faster Transactions
-- ⚡ Dynamic Priority Fees
-- ⚡ Compute Optimization
-- ⚡ Enhanced Retry Logic
-- ⚡ 85-95% Success Rate
-
-### Monitoring
-- 📱 Telegram Bot (Commands & alerts)
-- 🌐 Web Dashboard (Real-time monitoring)
-- 🔌 REST API (Integration ready)
-- 💬 Chat Integration (Ask me anytime!)
-
-### Multi-Platform (NEW!)
-- 💬 Discord (Community alerts)
-- 🐦 Twitter (Auto-tweets)
-- 📱 TikTok (Viral content)
-- 📧 Email (HTML reports)
-
----
-
-## 📊 QUICK STATS
-
-| Metric | Value |
-|--------|-------|
-| Transaction Speed | 1-3 seconds |
-| Success Rate | 85-95% |
-| Setup Time | 5 minutes |
-| Platforms | 8+ integrated |
-| Uptime | 99.9% |
-
----
-
-## 📚 DOCUMENTATION
-
-### Quick Start:
-- **QUICK-REFERENCE.md** ⭐ → One-page guide
-- **COPILOT-AUTO-SETUP.md** ⭐ → Auto-setup instructions
-- **README.md** → This file
-
-### Setup & Deployment:
-- **SETUP-GUIDE.md** → Detailed manual setup
-- **VPS-DEPLOYMENT.md** → Production deployment
-- **DEPLOYMENT-CHECKLIST.md** → Pre-flight checks
-
-### Features:
-- **WEB-DASHBOARD-GUIDE.md** → Dashboard docs
-- **EXTERNAL-API-GUIDE.md** → Chat integration
-- **MULTI-PLATFORM-GUIDE.md** → Social media setup
-- **ELIZAOS-V2-MIGRATION.md** → V2 improvements
-
-### Development:
-- **.github/copilot-instructions.md** → Coding guidelines
-
----
-
-## 🎯 CHOOSE YOUR PATH
-
-### Beginner (Testing):
-```
-1. Use Codespace
-2. Run auto-setup command
-3. Start in Alert Mode
-4. Monitor via dashboard
-5. Learn & optimize
-```
-
-### Intermediate (Trading):
-```
-1. Setup in Codespace
-2. Enable trading (small amounts)
-3. Monitor performance
-4. Scale gradually
-5. Deploy to VPS
-```
-
-### Advanced (Production):
-```
-1. VPS deployment
-2. Multi-platform integration
-3. Full automation
-4. Community building
-5. Monetization strategies
-```
-
----
-
-## 💰 MONETIZATION (Optional)
-
-With multi-platform integration:
-- Discord Premium Channel ($10/mo × members)
-- Bot Rental ($50/mo per user)
-- Affiliate Marketing (referrals)
-- Content/Courses ($99+)
-- Consulting ($100/hour)
-
-**Potential: $1,000-10,000/mo passive income! 💎**
-
----
-
-## 🔒 SECURITY
-
-- ✅ Dedicated trading wallet recommended
-- ✅ API key authentication
-- ✅ Environment variables
-- ✅ No private keys in code
-- ✅ Read-only public APIs
-- ✅ Optional SSH tunneling
-
----
-
-## ⚖️ DISCLAIMER
-
-**IMPORTANT:**
-- Educational purposes only
-- Trading involves significant risk
-- You can lose all capital
-- Not financial advice
-- Use at your own risk
-- Start with small amounts
-
----
-
-## 📜 LICENSE
-
-MIT License - See LICENSE file
-
----
-
-## 🎉 QUICK LINKS
-
-### Setup:
-- [One-Command Setup](scripts/codespace-setup.sh)
-- [Copilot Instructions](COPILOT-AUTO-SETUP.md)
-- [Quick Reference](QUICK-REFERENCE.md)
-
-### Guides:
-- [Complete Setup](SETUP-GUIDE.md)
-- [VPS Deployment](VPS-DEPLOYMENT.md)
-- [Web Dashboard](WEB-DASHBOARD-GUIDE.md)
-
-### Integration:
-- [Multi-Platform](MULTI-PLATFORM-GUIDE.md)
-- [External API](EXTERNAL-API-GUIDE.md)
-- [ElizaOS V2](ELIZAOS-V2-MIGRATION.md)
-
----
-
-## 🚀 READY TO START?
-
-### Fastest Path (5 minutes):
+## 🔧 PM2 Commands
 
 ```bash
-# 1. Open Codespace
-# 2. Run this:
-curl -fsSL https://raw.githubusercontent.com/Timson100x/Solana-AI-Trading-Agent/main/scripts/codespace-setup.sh | bash
-
-# 3. Fill .env (while it runs)
-# 4. Start bot:
-npm start
-
-# 5. Access:
-# Dashboard: http://localhost:3000
-# Telegram: /start
-
-# 6. TRADE! 💰🔥
+pm2 start index.js --name trading-bot  # Start
+pm2 stop trading-bot                    # Stop
+pm2 restart trading-bot                 # Restart
+pm2 logs trading-bot                    # View logs
+pm2 status                              # Status
+pm2 startup && pm2 save                 # Auto-start on reboot
 ```
 
----
+## ⚠️ Disclaimer
 
-**Repository:** https://github.com/Timson100x/Solana-AI-Trading-Agent
+This bot trades with real funds. Use at your own risk. Always start with small amounts and monitor closely.
 
-**Version:** v2.1.0 - ElizaOS V2 + Multi-Platform
+## 📄 License
 
-**Status:** Production Ready ✅
-
----
-
-# 💎 START TRADING IN 5 MINUTES! ⚡🚀💰
-
-**One command. One coffee break. Start trading. 🔥**
+MIT License
