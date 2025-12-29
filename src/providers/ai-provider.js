@@ -164,20 +164,18 @@ export class AIProvider {
     const prompt = `Token:${compact}
 Analyze.Reply:BUY/SELL/HOLD|confidence0-100|reason(10words)`;
 
-    const response = await this.chat([
-      { role: "user", content: prompt }
-    ], {
-      maxTokens: 50 // Kurze Antwort
+    const response = await this.chat([{ role: "user", content: prompt }], {
+      maxTokens: 50, // Kurze Antwort
     });
 
     // Parse Antwort
-    const parts = response.content.split('|');
+    const parts = response.content.split("|");
     return {
-      action: parts[0]?.trim() || 'HOLD',
+      action: parts[0]?.trim() || "HOLD",
       confidence: parseInt(parts[1]) || 50,
-      reason: parts[2]?.trim() || 'No reason',
+      reason: parts[2]?.trim() || "No reason",
       tokensSaved: savings.saved,
-      provider: response.provider
+      provider: response.provider,
     };
   }
 
@@ -187,7 +185,7 @@ Analyze.Reply:BUY/SELL/HOLD|confidence0-100|reason(10words)`;
   getTokenStats() {
     return {
       totalTokensSaved: this.tokensSaved,
-      estimatedCostSaved: `$${(this.tokensSaved * 0.00001).toFixed(4)}`
+      estimatedCostSaved: `$${(this.tokensSaved * 0.00001).toFixed(4)}`,
     };
   }
 }
