@@ -40,6 +40,11 @@ export class GmgnService {
             direction: "desc",
           },
           timeout: 10000,
+          headers: {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            Accept: "application/json",
+          },
         }
       );
 
@@ -77,7 +82,6 @@ export class GmgnService {
         }));
 
       logger.success(`✅ Found ${filtered.length} tokens on GMGN`);
-
       return filtered;
     } catch (error) {
       logger.error("GMGN fetch failed:", error.message);

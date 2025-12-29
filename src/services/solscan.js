@@ -43,13 +43,28 @@ export class SolScanService {
       await this.rateLimit();
       logger.info("🔍 Fetching trending tokens from SolScan...");
 
-      const response = await axios.get(`${this.baseUrl}/token/trending`, {
-        params: {
-          limit,
-          offset: 0,
-        },
-        timeout: 10000,
-      });
+      // Try v1 API first, fallback to v2
+      let response;
+      try {
+        response = await axios.get(`${this.baseUrl}/token/trending`, {
+          params: { limit, offset: 0 },
+          timeout: 10000,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+          },
+        });
+      } catch (error) {
+        if (error.response?.status === 404) {
+          // Try alternative endpoint
+          logger.warn("⚠️ SolScan v1 endpoint not found, trying v2...");
+          response = await axios.get(`${this.baseUrl}/v2/token/trending`, {
+            params: { limit, offset: 0 },
+            timeout: 10000,
+          });
+        } else {
+          throw error;
+        }
+      }
 
       if (response.data?.data) {
         const tokens = response.data.data

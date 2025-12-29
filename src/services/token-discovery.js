@@ -75,11 +75,11 @@ export class TokenDiscoveryService {
       logger.info("🦅 Fetching from Birdeye...");
 
       const data = await this.birdeyeRequest("/defi/tokenlist", {
-        sort_by: sortBy,
-        sort_type: sortType,
+        sortBy: sortBy, // ✅ Correct parameter name (was sort_by)
+        sortType: sortType, // ✅ Correct parameter name (was sort_type)
         offset,
         limit: Math.min(limit, 50),
-        min_liquidity: minLiquidity,
+        minLiquidity: minLiquidity, // ✅ Correct parameter name
       });
 
       const tokens = data.data?.tokens || data.data?.items || [];

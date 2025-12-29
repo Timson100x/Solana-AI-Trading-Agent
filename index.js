@@ -6,6 +6,7 @@
 import "dotenv/config";
 import express from "express";
 import { Connection } from "@solana/web3.js";
+import { MultiRPCService } from "./src/services/multi-rpc.js";
 import { WalletService } from "./src/services/wallet.js";
 import { JupiterService } from "./src/services/jupiter.js";
 import { SolanaService } from "./src/services/solana.js";
@@ -49,14 +50,10 @@ class TradingAgent {
     try {
       logger.info("🚀 Initializing Solana AI Trading Agent...");
 
-      // Initialize Solana connection
-      const rpcUrl = process.env.SOLANA_RPC_URL || process.env.RPC_ENDPOINT;
-      if (!rpcUrl) {
-        throw new Error("SOLANA_RPC_URL (or RPC_ENDPOINT) not configured");
-      }
-
-      this.connection = new Connection(rpcUrl, "confirmed");
-      logger.success("✅ Solana connection established");
+      // Initialize Multi-RPC with automatic failover
+      this.multiRPC = new MultiRPCService();
+      this.connection = this.multiRPC.getConnection();
+      logger.success("✅ Solana connection established with Multi-RPC");
 
       // Initialize all services
       this.solana = new SolanaService(this.connection);
