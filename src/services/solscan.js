@@ -18,12 +18,35 @@ export class SolScanService {
 
   async rateLimit() {
     const now = Date.now();
+
+    // Reset window if needed
+    if (now - this.windowStart > this.requestWindow) {
+      this.requestCount = 0;
+      this.windowStart = now;
+    }
+
+    // Check if at limit
+    if (this.requestCount >= this.maxRequests) {
+      const waitTime = this.requestWindow - (now - this.windowStart);
+      logger.warn(
+        `⚠️  SolScan rate limit reached, waiting ${Math.ceil(
+          waitTime / 1000
+        )}s...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
+      this.requestCount = 0;
+      this.windowStart = Date.now();
+    }
+
+    // Minimum delay between requests
     const timeSinceLastRequest = now - this.lastRequest;
     if (timeSinceLastRequest < this.minDelay) {
       await new Promise((resolve) =>
         setTimeout(resolve, this.minDelay - timeSinceLastRequest)
       );
     }
+
+    this.requestCount++;
     this.lastRequest = Date.now();
   }
 
