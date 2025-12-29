@@ -64,12 +64,28 @@ export class HeliusWebhooks {
 
   async handleTransaction(tx) {
     try {
-      // Check if transaction is from tracked wallet
-      const wallets = await this.agent.loadWallets();
-      const walletAddresses = wallets.map(w => w.address);
+      // Validate transaction data
+      if (!tx || !tx.accountData) {
+        logger.warn('⚠️ Invalid transaction data received');
+        return;
+      }
 
-      const isTracked = tx.accountData?.some(acc => 
-        walletAddresses.includes(acc.account)
+      // Check if transaction is from tracked wallet
+      if (!this.agent || typeof this.agent.loadWallets !== 'function') {
+        logger.error('❌ Agent not properly initialized');
+        return;
+      }
+
+      const wallets = await this.agent.loadWallets();
+      if (!wallets || wallets.length === 0) {
+        logger.info('⏭️ No wallets configured - skipping transaction');
+        return;
+      }
+
+      const walletAddresses = wallets.map(w => w.address).filter(Boolean);
+
+      const isTracked = tx.accountData.some(acc => 
+        acc && acc.account && walletAddresses.includes(acc.account)
       );
 
       if (!isTracked) {
@@ -78,17 +94,21 @@ export class HeliusWebhooks {
       }
 
       logger.success('🎯 Transaction from tracked wallet detected!');
-      logger.info(`Transaction signature: ${tx.signature?.slice(0, 8)}...`);
+      logger.info(`Transaction signature: ${tx.signature?.slice(0, 8) || 'unknown'}...`);
 
       // Analyze with agent
       const relevantWallet = wallets.find(w => 
-        tx.accountData?.some(acc => acc.account === w.address)
+        tx.accountData.some(acc => acc && acc.account === w.address)
       );
 
       if (relevantWallet) {
-        await this.agent.checkWallet({ 
-          address: relevantWallet.address 
-        });
+        if (typeof this.agent.checkWallet === 'function') {
+          await this.agent.checkWallet({ 
+            address: relevantWallet.address 
+          });
+        } else {
+          logger.warn('⚠️ Agent checkWallet method not available');
+        }
       }
 
     } catch (error) {
@@ -303,10 +323,27 @@ export class HeliusWebhooks {
         logger.info(`✅ Using existing webhook: ${this.webhookId}`);
       } else {
         // Create new webhook with tracked wallets
-        const wallets = await this.agent.loadWallets();
-        if (wallets.length > 0) {
-          const addresses = wallets.map(w => w.address);
-          await this.createWebhook(addresses);
+        if (!this.agent || typeof this.agent.loadWallets !== 'function') {
+          logger.warn('⚠️ Agent loadWallets method not available - skipping webhook creation');
+          logger.info('💡 Webhook will be created when wallets are added');
+          return;
+        }
+
+        try {
+          const wallets = await this.agent.loadWallets();
+          if (wallets && wallets.length > 0) {
+            const addresses = wallets.map(w => w.address).filter(Boolean);
+            if (addresses.length > 0) {
+              await this.createWebhook(addresses);
+            } else {
+              logger.warn('⚠️ No valid wallet addresses found - skipping webhook creation');
+            }
+          } else {
+            logger.info('💡 No wallets configured yet - webhook will be created when wallets are added');
+          }
+        } catch (walletError) {
+          logger.error('❌ Failed to load wallets for webhook creation:', walletError);
+          logger.info('💡 You can create webhook manually later with tracked wallet addresses');
         }
       }
     } catch (error) {

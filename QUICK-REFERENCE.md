@@ -72,6 +72,30 @@ npm start
 
 ---
 
+## 🔔 WEBHOOK SETUP (Optional - Better Performance!)
+
+### Enable Real-Time Notifications:
+```env
+# Add to .env
+HELIUS_WEBHOOKS=true
+HELIUS_API_KEY=your_key
+PUBLIC_URL=https://your-url.ngrok.io
+```
+
+### Quick Test:
+```bash
+npm run test:webhooks
+```
+
+**Benefits:** 
+- ⚡ Instant notifications (1-3s vs 30-60s)
+- 💰 90% lower RPC costs
+- 📈 Better for production
+
+**Full guide:** HELIUS-WEBHOOK-GUIDE.md
+
+---
+
 ## 🔥 EVEN FASTER: Codespace Secrets
 
 Set secrets in GitHub:
