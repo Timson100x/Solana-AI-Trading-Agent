@@ -18,13 +18,13 @@ export class TokenDiscoveryService {
     this.bubblemaps = bubblemaps;
     this.coingecko = coingecko;
     this.solscan = solscan;
-    
+
     // Rate limiting
     this.lastBirdeyeRequest = 0;
     this.birdeyeMinDelay = 2000; // 2s between requests
     this.birdeyeRequestCount = 0;
     this.birdeyeResetTime = Date.now() + 60000; // Reset every minute
-    
+
     // Caching
     this.cache = new Map();
     this.cacheTTL = 5 * 60 * 1000; // 5 min
@@ -50,30 +50,34 @@ export class TokenDiscoveryService {
       this.birdeyeRequestCount = 0;
       this.birdeyeResetTime = Date.now() + 60000;
     }
-    
+
     // Max 30 requests per minute
     if (this.birdeyeRequestCount >= 30) {
       const waitTime = this.birdeyeResetTime - Date.now();
-      logger.warn(`⚠️ Birdeye rate limit - waiting ${Math.ceil(waitTime/1000)}s`);
-      await new Promise(r => setTimeout(r, waitTime));
+      logger.warn(
+        `⚠️ Birdeye rate limit - waiting ${Math.ceil(waitTime / 1000)}s`
+      );
+      await new Promise((r) => setTimeout(r, waitTime));
       this.birdeyeRequestCount = 0;
       this.birdeyeResetTime = Date.now() + 60000;
     }
-    
+
     // Delay between requests
     const now = Date.now();
     const timeSinceLastRequest = now - this.lastBirdeyeRequest;
     if (timeSinceLastRequest < this.birdeyeMinDelay) {
-      await new Promise(r => setTimeout(r, this.birdeyeMinDelay - timeSinceLastRequest));
+      await new Promise((r) =>
+        setTimeout(r, this.birdeyeMinDelay - timeSinceLastRequest)
+      );
     }
-    
+
     this.lastBirdeyeRequest = Date.now();
     this.birdeyeRequestCount++;
   }
 
   async birdeyeRequest(path, params = {}) {
     await this.rateLimitBirdeye();
-    
+
     try {
       const response = await axios.get(`${this.sources.birdeye}${path}`, {
         params,
@@ -188,10 +192,10 @@ export class TokenDiscoveryService {
    */
   async getJupiterTokens() {
     try {
-      const cacheKey = 'jupiter_tokens';
+      const cacheKey = "jupiter_tokens";
       const cached = this.getFromCache(cacheKey);
       if (cached) return cached;
-      
+
       logger.info("🪐 Fetching from Jupiter...");
 
       // Try multiple CDN endpoints
@@ -201,14 +205,14 @@ export class TokenDiscoveryService {
         "https://token.jup.ag/strict",
         "https://tokens.jup.ag/tokens?tags=verified",
       ];
-      
+
       let lastError;
       for (const endpoint of endpoints) {
         try {
           const response = await axios.get(endpoint, {
             timeout: 15000,
             headers: {
-              'Accept': 'application/json',
+              Accept: "application/json",
             },
           });
 
@@ -232,7 +236,7 @@ export class TokenDiscoveryService {
           lastError = error;
         }
       }
-      
+
       logger.warn(`⚠️ All Jupiter endpoints failed: ${lastError?.message}`);
       return [];
     } catch (error) {

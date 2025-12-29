@@ -60,20 +60,24 @@ export class GmgnService {
       let lastError;
       for (let i = 0; i < this.endpoints.length; i++) {
         try {
-          const endpoint = this.endpoints[(this.currentEndpointIndex + i) % this.endpoints.length];
-          
+          const endpoint =
+            this.endpoints[
+              (this.currentEndpointIndex + i) % this.endpoints.length
+            ];
+
           const response = await axios.get(
             `${endpoint}/tokens/top_tokens/${this.solanaChain}`,
             {
               params: { limit, orderby: orderBy, direction: "desc" },
               timeout: 15000,
               headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Accept": "application/json, text/plain, */*",
+                "User-Agent":
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                Accept: "application/json, text/plain, */*",
                 "Accept-Language": "en-US,en;q=0.9",
                 "Accept-Encoding": "gzip, deflate, br",
-                "Referer": "https://gmgn.ai/",
-                "Origin": "https://gmgn.ai",
+                Referer: "https://gmgn.ai/",
+                Origin: "https://gmgn.ai",
                 "Sec-Fetch-Dest": "empty",
                 "Sec-Fetch-Mode": "cors",
                 "Sec-Fetch-Site": "same-origin",
@@ -81,64 +85,77 @@ export class GmgnService {
             }
           );
 
-      if (!response.data || !response.data.data || !response.data.data.rank) {
-        logger.warn("No tokens found on GMGN");
-        return [];
-      }
+          if (
+            !response.data ||
+            !response.data.data ||
+            !response.data.data.rank
+          ) {
+            logger.warn("No tokens found on GMGN");
+            return [];
+          }
 
-      const tokens = response.data.data.rank;
+          const tokens = response.data.data.rank;
 
-      // Filter and format tokens
-      const filtered = tokens
-        .filter((token) => {
-          const liquidity = parseFloat(token.liquidity || 0);
-          const volume = parseFloat(token.volume_24h || 0);
+          // Filter and format tokens
+          const filtered = tokens
+            .filter((token) => {
+              const liquidity = parseFloat(token.liquidity || 0);
+              const volume = parseFloat(token.volume_24h || 0);
 
-          return liquidity >= minLiquidity && volume >= minVolume;
-        })
-        .map((token) => ({
-          address: token.address,
-          symbol: token.symbol,
-          name: token.name,
-          priceUsd: parseFloat(token.price || 0),
-          priceChange24h: parseFloat(token.price_change_24h || 0),
-          volume24h: parseFloat(token.volume_24h || 0),
-          liquidity: parseFloat(token.liquidity || 0),
-          marketCap: parseFloat(token.market_cap || 0),
-          holders: parseInt(token.holder_count || 0),
-          smartMoney: {
-            amount: parseFloat(token.smart_money_amount || 0),
-            count: parseInt(token.smart_money_count || 0),
-          },
-          createdAt: token.created_timestamp,
-          source: "gmgn",
-        }));
+              return liquidity >= minLiquidity && volume >= minVolume;
+            })
+            .map((token) => ({
+              address: token.address,
+              symbol: token.symbol,
+              name: token.name,
+              priceUsd: parseFloat(token.price || 0),
+              priceChange24h: parseFloat(token.price_change_24h || 0),
+              volume24h: parseFloat(token.volume_24h || 0),
+              liquidity: parseFloat(token.liquidity || 0),
+              marketCap: parseFloat(token.market_cap || 0),
+              holders: parseInt(token.holder_count || 0),
+              smartMoney: {
+                amount: parseFloat(token.smart_money_amount || 0),
+                count: parseInt(token.smart_money_count || 0),
+              },
+              createdAt: token.created_timestamp,
+              source: "gmgn",
+            }));
 
           // Success - cache and update endpoint
           if (i > 0) {
-            this.currentEndpointIndex = (this.currentEndpointIndex + i) % this.endpoints.length;
-            logger.info(`🔄 GMGN switched to endpoint ${this.currentEndpointIndex + 1}`);
+            this.currentEndpointIndex =
+              (this.currentEndpointIndex + i) % this.endpoints.length;
+            logger.info(
+              `🔄 GMGN switched to endpoint ${this.currentEndpointIndex + 1}`
+            );
           }
-          
+
           this.setCache(cacheKey, filtered);
           logger.success(`✅ Found ${filtered.length} tokens on GMGN`);
           return filtered;
         } catch (error) {
           lastError = error;
           const status = error.response?.status;
-          
+
           if (status === 403) {
-            logger.warn(`⚠️ GMGN endpoint ${i + 1} blocked (403) - trying next...`);
+            logger.warn(
+              `⚠️ GMGN endpoint ${i + 1} blocked (403) - trying next...`
+            );
           } else if (status === 429) {
-            logger.warn(`⚠️ GMGN endpoint ${i + 1} rate limited - trying next...`);
-            await new Promise(r => setTimeout(r, 2000)); // Wait 2s
+            logger.warn(
+              `⚠️ GMGN endpoint ${i + 1} rate limited - trying next...`
+            );
+            await new Promise((r) => setTimeout(r, 2000)); // Wait 2s
           } else {
             logger.warn(`⚠️ GMGN endpoint ${i + 1} failed: ${error.message}`);
           }
         }
       }
-      
-      logger.error(`❌ All GMGN endpoints failed. Last error: ${lastError?.message}`);
+
+      logger.error(
+        `❌ All GMGN endpoints failed. Last error: ${lastError?.message}`
+      );
       return [];
     } catch (error) {
       logger.error("GMGN unexpected error:", error.message);

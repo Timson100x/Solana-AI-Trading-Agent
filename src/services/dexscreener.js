@@ -36,7 +36,9 @@ export class DexScreenerService {
     const now = Date.now();
     const timeSinceLastRequest = now - this.lastRequest;
     if (timeSinceLastRequest < this.minDelay) {
-      await new Promise(r => setTimeout(r, this.minDelay - timeSinceLastRequest));
+      await new Promise((r) =>
+        setTimeout(r, this.minDelay - timeSinceLastRequest)
+      );
     }
     this.lastRequest = Date.now();
   }
@@ -64,7 +66,7 @@ export class DexScreenerService {
       // Get boosted tokens (trending)
       const response = await axios.get(`${this.baseUrl}/dex/tokens/boosted`, {
         timeout: 15000,
-        headers: { 'Accept': 'application/json' },
+        headers: { Accept: "application/json" },
       });
 
       if (!response.data || !response.data.tokens) {

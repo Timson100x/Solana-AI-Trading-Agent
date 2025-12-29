@@ -59,63 +59,73 @@ export class PumpFunService {
       for (let attempt = 0; attempt < 3; attempt++) {
         for (let i = 0; i < this.endpoints.length; i++) {
           try {
-            const endpoint = this.endpoints[(this.currentEndpointIndex + i) % this.endpoints.length];
-            
+            const endpoint =
+              this.endpoints[
+                (this.currentEndpointIndex + i) % this.endpoints.length
+              ];
+
             const response = await axios.get(`${endpoint}/coins`, {
               params: { offset: 0, limit, sort, order, includeNsfw },
               timeout: 15000,
               headers: {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                "Accept": "application/json",
+                "User-Agent":
+                  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                Accept: "application/json",
               },
             });
 
-      if (!response.data) {
-        logger.warn("No coins found on Pump.fun");
-        return [];
-      }
+            if (!response.data) {
+              logger.warn("No coins found on Pump.fun");
+              return [];
+            }
 
-      const coins = response.data.map((coin) => ({
-        address: coin.mint,
-        symbol: coin.symbol,
-        name: coin.name,
-        description: coin.description,
-        imageUri: coin.image_uri,
-        metadataUri: coin.metadata_uri,
-        twitter: coin.twitter,
-        telegram: coin.telegram,
-        website: coin.website,
-        createdAt: new Date(coin.created_timestamp).getTime(),
-        marketCap: parseFloat(coin.usd_market_cap || 0),
-        replyCount: parseInt(coin.reply_count || 0),
-        lastReply: coin.last_reply,
-        nsfw: coin.nsfw || false,
-        kingOfTheHill: coin.king_of_the_hill_timestamp ? true : false,
-        source: "pumpfun",
-      }));
+            const coins = response.data.map((coin) => ({
+              address: coin.mint,
+              symbol: coin.symbol,
+              name: coin.name,
+              description: coin.description,
+              imageUri: coin.image_uri,
+              metadataUri: coin.metadata_uri,
+              twitter: coin.twitter,
+              telegram: coin.telegram,
+              website: coin.website,
+              createdAt: new Date(coin.created_timestamp).getTime(),
+              marketCap: parseFloat(coin.usd_market_cap || 0),
+              replyCount: parseInt(coin.reply_count || 0),
+              lastReply: coin.last_reply,
+              nsfw: coin.nsfw || false,
+              kingOfTheHill: coin.king_of_the_hill_timestamp ? true : false,
+              source: "pumpfun",
+            }));
 
             // Success
             if (i > 0) {
-              this.currentEndpointIndex = (this.currentEndpointIndex + i) % this.endpoints.length;
+              this.currentEndpointIndex =
+                (this.currentEndpointIndex + i) % this.endpoints.length;
             }
-            
+
             this.setCache(cacheKey, coins);
             logger.success(`✅ Found ${coins.length} coins on Pump.fun`);
             return coins;
           } catch (error) {
             lastError = error;
-            if (error.response?.status === 530 || error.response?.status >= 500) {
-              logger.warn(`⚠️ Pump.fun endpoint ${i + 1} server error - trying next...`);
+            if (
+              error.response?.status === 530 ||
+              error.response?.status >= 500
+            ) {
+              logger.warn(
+                `⚠️ Pump.fun endpoint ${i + 1} server error - trying next...`
+              );
             }
           }
         }
-        
+
         // Wait before retry
         if (attempt < 2) {
-          await new Promise(r => setTimeout(r, 2000 * (attempt + 1)));
+          await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
         }
       }
-      
+
       logger.error(`❌ All Pump.fun endpoints failed: ${lastError?.message}`);
       return [];
     } catch (error) {
